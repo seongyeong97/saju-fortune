@@ -217,6 +217,7 @@
             <div class="input-group"><label>월</label><input type="number" id="month2" placeholder="8" min="1" max="12"></div>
             <div class="input-group"><label>일</label><input type="number" id="day2" placeholder="20" min="1" max="31"></div>
             <div class="input-group"><label>시</label><input type="number" id="hour2" placeholder="10" min="0" max="23"></div>
+            <div class="input-group"><label>분</label><input type="number" id="minute2" placeholder="0" min="0" max="59"></div>
             <div class="input-group"><label>성별</label><select id="gender2"><option value="F">여성</option><option value="M">남성</option></select></div>
         </div>
         <button class="btn-analyze" onclick="checkCompatibility()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);">💕 궁합 보기</button>
@@ -1079,7 +1080,7 @@ function renderZiwei(data) {
 function checkCompatibility() {
     const g = id => document.getElementById(id).value;
     const y1=+g('year'),m1=+g('month'),d1=+g('day'),h1=+g('hour'),g1=g('gender'),cal1=g('cal-type');
-    const y2=+g('year2'),m2=+g('month2'),d2=+g('day2'),h2=+g('hour2'),g2=g('gender2'),cal2=g('cal-type2');
+    const y2=+g('year2'),m2=+g('month2'),d2=+g('day2'),h2=+g('hour2'),min2=+(g('minute2')||0),g2=g('gender2'),cal2=g('cal-type2');
     if (!y1||!m1||!d1||!y2||!m2||!d2) { alert('두 사람 모두 입력해주세요.'); return; }
     let sy1=y1,sm1=m1,sd1=d1,sy2=y2,sm2=m2,sd2=d2;
     if (cal1==='lunar') { const c=lunarToSolar(y1,m1,d1); sy1=c.year;sm1=c.month;sd1=c.day; }
