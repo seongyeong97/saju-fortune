@@ -1147,6 +1147,58 @@ function generateDetailedInterp(birthYear, pillars, sipsungs, ohaengData, daeun,
     else periodLines.push("  노후 대비를 일찍 시작하면 편안한 말년을 보장합니다.");
     result.lifePeriod = {title:"인생 시기별 운세",icon:"📅",content:periodLines.join("\n")};
 
+    // ===== 추가: 타이밍 추천 =====
+    let timingLines = [];
+    const currentYear = new Date().getFullYear();
+    const currentAge = currentYear - birthYear;
+    if (daeun && daeun.periods) {
+        const curP = daeun.periods.find(p => p.age_start <= currentAge && currentAge <= p.age_end);
+        const nextP = daeun.periods.find(p => p.age_start > currentAge);
+        // 용신 대운 찾기
+        const goodPeriods = daeun.periods.filter(p => {
+            const gOh = OHAENG.indexOf(p.ohaeng_gan)>=0 ? OHAENG.indexOf(p.ohaeng_gan) : -1;
+            const jOh = OHAENG.indexOf(p.ohaeng_ji)>=0 ? OHAENG.indexOf(p.ohaeng_ji) : -1;
+            return gOh === ohaengData.yongsin || jOh === ohaengData.yongsin;
+        });
+        if (goodPeriods.length > 0) {
+            const futureGood = goodPeriods.filter(p => p.age_start >= currentAge);
+            if (futureGood.length > 0) {
+                timingLines.push(`【추천 시기】`);
+                futureGood.slice(0,3).forEach(p => {
+                    const yr = birthYear + p.age_start;
+                    timingLines.push(`  • ${p.age_start}~${p.age_end}세 (${yr}~${yr+10}년): 용신(${OHAENG[ohaengData.yongsin]}) 대운으로 적극 도전 시기`);
+                });
+                timingLines.push('  → 이 시기에 이직, 사업 확장, 투자, 결혼 등 큰 결정이 유리합니다.');
+            }
+            const pastGood = goodPeriods.filter(p => p.age_end < currentAge);
+            if (pastGood.length > 0 && futureGood.length === 0) {
+                timingLines.push('【추천 시기】 현재 대운에서 용신이 빠져있습니다.', '  → 내년 세운을 확인하고, 용신에 해당하는 방위·색상으로 보완하세요.');
+            }
+        }
+        // 주의 시기 (기신 대운)
+        const gisin = ohaengData.gisin !== undefined ? ohaengData.gisin : ((ohaengData.yongsin + 2) % 5);
+        const badPeriods = daeun.periods.filter(p => {
+            return p.ohaeng_gan === OHAENG[gisin] || p.ohaeng_ji === OHAENG[gisin];
+        });
+        const futureBad = badPeriods.filter(p => p.age_start >= currentAge);
+        if (futureBad.length > 0) {
+            timingLines.push('', '【주의 시기】');
+            futureBad.slice(0,2).forEach(p => {
+                const yr = birthYear + p.age_start;
+                timingLines.push(`  • ${p.age_start}~${p.age_end}세 (${yr}~${yr+10}년): 기신(忌神) 대운으로 보수적 운영 권장`);
+            });
+            timingLines.push('  → 무리한 확장, 큰 투자, 이직은 피하고 내실을 다지세요.');
+        }
+    }
+    if (seun) {
+        timingLines.push('', `【${seun.year}년 세운 타이밍】`);
+        if (seun.score >= 70) timingLines.push(`  올해는 점수 ${seun.score}점으로 좋은 해입니다. 새로운 시도에 유리합니다.`);
+        else if (seun.score >= 50) timingLines.push(`  올해는 점수 ${seun.score}점으로 무난합니다. 급격한 변화보다 점진적 발전이 좋습니다.`);
+        else timingLines.push(`  올해는 점수 ${seun.score}점으로 조심해야 합니다. 수비적으로 운영하고 건강 관리에 집중하세요.`);
+    }
+    if (timingLines.length === 0) timingLines.push("대운 데이터가 부족하여 타이밍 분석이 제한됩니다.");
+    result.timing = {title:"타이밍 추천",icon:"⏰",content:timingLines.join("\n")};
+
     return result;
 }
 
@@ -1169,7 +1221,7 @@ function fullAnalysis(year, month, day, hour, minute, gender, calType, isLeap, u
     let ziwei = null;
     try { ziwei = calcZiwei(lunar.year, lunar.month, lunar.day, pillars.hour.ji_idx, pillars.year.gan_idx, pillars.year.ji_idx, gender); } catch(e) { ziwei = {error:e.message}; }
     // 상세 해석
-    const ohaengInfo = { strength: anal.strength, yongsin: anal.yongsin, weakOh: anal.weakOh, weakCount: anal.weakCount };
+    const ohaengInfo = { strength: anal.strength, yongsin: anal.yongsin, weakOh: anal.weakOh, weakCount: anal.weakCount, domOh: anal.domOh };
     const detailedInterp = generateDetailedInterp(sY, pillars, sipsungs, ohaengInfo, daeun, seun, gender);
 
     return { birth: {year:sY, month:sM, day:sD, hour, minute, gender, cal_type: calType}, pillars, tti: sajuResult.tti, solarCorrection: sajuResult.solarCorrection, lunar, ohaeng: anal, sipsungs, daeun, seun, today, ziwei, detailedInterp };
@@ -1230,11 +1282,56 @@ function renderOhaeng(data) {
 function renderDetailedInterp(data) {
     const interp = data.detailedInterp;
     if (!interp) { document.getElementById('detailed-interp-section').innerHTML = ''; return; }
-    let html = '<h2>◈ 사주 상세 해석</h2>';
-    html += `<p style="color:var(--text-dim);margin-bottom:1rem;">십성: ${data.sipsungs.map(s=>`<span class="tag tag-info">${s.position}: ${s.star}</span>`).join(' ')}</p>`;
-    ['personality','love','money','career','health','social','unsung','sinsal','gongmang','lifePeriod','overall'].forEach(key => {
+    const oh = data.ohaeng;
+    const pillars = data.pillars;
+
+    // 1. 사주 구조 요약
+    let html = '<h2>🔹 사주 구조</h2>';
+    html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:1rem 0;text-align:center;">`;
+    ['year','month','day','hour'].forEach(pos => {
+        const p = pillars[pos];
+        const label = {year:'년주',month:'월주',day:'일주',hour:'시주'}[pos];
+        const isDay = pos==='day';
+        html += `<div style="background:var(--bg-input);border-radius:8px;padding:0.8rem;${isDay?'border:2px solid var(--accent);':'border:1px solid var(--border);'}"><div style="font-size:0.75rem;color:var(--text-dim);">${label}</div><div style="font-size:1.5rem;font-weight:bold;color:${isDay?'var(--accent)':'var(--text)'};">${p.gan_hanja}${p.ji_hanja}</div><div style="font-size:0.8rem;color:var(--gold);">${p.gan}${p.ji}</div></div>`;
+    });
+    html += '</div>';
+    html += `<p style="color:var(--text-dim);font-size:0.85rem;">일간(Day Master): <strong style="color:var(--accent);">${pillars.day.gan_hanja}(${pillars.day.gan})</strong> | 격국: ${oh.strength}</p>`;
+    html += `<p style="color:var(--text-dim);font-size:0.85rem;margin-top:0.3rem;">십성: ${data.sipsungs.map(s=>`<span class="tag tag-info">${s.position}:${s.star}</span>`).join(' ')}</p>`;
+
+    // 2. 오행 분포
+    html += '<h2 style="margin-top:1.5rem;">🔹 오행 분포</h2>';
+    const ohNames = ['목','화','토','금','수'];
+    const ohColors = ['#4CAF50','#F44336','#FF9800','#9E9E9E','#2196F3'];
+    const ohCounts = [oh.count[0]||0, oh.count[1]||0, oh.count[2]||0, oh.count[3]||0, oh.count[4]||0];
+    const maxCount = Math.max(...ohCounts, 1);
+    html += '<div style="margin:1rem 0;">';
+    ohNames.forEach((name,i) => {
+        const count = ohCounts[i];
+        const pct = Math.round(count/8*100);
+        const isWeak = i===oh.weakOh;
+        const isYong = i===oh.yongsin;
+        html += `<div style="display:flex;align-items:center;gap:8px;margin:0.4rem 0;"><div style="min-width:30px;font-weight:bold;color:${ohColors[i]};">${name}</div><div style="flex:1;background:var(--bg-input);border-radius:4px;height:20px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${ohColors[i]};border-radius:4px;transition:width 0.3s;"></div></div><div style="min-width:60px;font-size:0.8rem;color:var(--text-dim);">${count}개(${pct}%)</div>`;
+        if (isYong) html += `<span class="tag tag-good" style="font-size:0.7rem;">용신</span>`;
+        if (isWeak) html += `<span class="tag tag-warn" style="font-size:0.7rem;">부족</span>`;
+        html += '</div>';
+    });
+    html += '</div>';
+    // 균형 평가
+    let balanceMsg = '';
+    if (oh.weakCount === 0) balanceMsg = `⚠️ ${ohNames[oh.weakOh]} 오행이 완전히 부재합니다. 해당 기운 보완이 필수입니다.`;
+    else if (oh.weakCount <= 1) balanceMsg = `△ ${ohNames[oh.weakOh]} 오행이 부족합니다. 용신(${OHAENG[oh.yongsin]})으로 보완 가능.`;
+    else balanceMsg = '○ 오행 분포가 비교적 균형잡혀 있습니다.';
+    const domCount = oh.count[oh.domOh]||0;
+    const domMsg = domCount >= 4 ? `⚠️ ${ohNames[oh.domOh]} 오행 과다(${domCount}개). 과도한 에너지를 조절할 필요 있음.` : '';
+    html += `<p style="color:var(--gold);font-size:0.9rem;">${balanceMsg}</p>`;
+    if (domMsg) html += `<p style="color:#e67e22;font-size:0.9rem;">${domMsg}</p>`;
+
+    // 3~6 섹션: 상세 해석 (아코디언)
+    html += '<h2 style="margin-top:1.5rem;">🔹 상세 해석</h2>';
+    ['personality','career','love','money','health','social','timing','unsung','sinsal','gongmang','lifePeriod','overall'].forEach(key => {
         const item = interp[key]; if (!item) return;
-        html += `<details class="interp-detail" ${key==='personality'?'open':''}><summary>${item.icon} ${item.title}</summary><div class="interp-content">${item.content.replace(/\n\n/g,'</p><p style="margin-top:0.8rem;">').replace(/\n/g,'<br>')}</div></details>`;
+        const isOpen = key==='personality' || key==='career' || key==='timing';
+        html += `<details class="interp-detail" ${isOpen?'open':''}><summary>${item.icon} ${item.title}</summary><div class="interp-content">${item.content.replace(/\n\n/g,'</p><p style="margin-top:0.8rem;">').replace(/\n/g,'<br>')}</div></details>`;
     });
     document.getElementById('detailed-interp-section').innerHTML = html;
 }
