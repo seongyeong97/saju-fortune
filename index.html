@@ -2101,7 +2101,7 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
     }
     sections.possibility = {title:"3. 재회 가능성", icon:"🔮", content: sec3.join("\n")};
 
-    // ===== 4. 재회 시기 (대운/세운 기반) =====
+    // ===== 4. 재회 시기 (대운/세운/월운 기반) =====
     let sec4 = [];
     sec4.push('【언제 다시 만나기 좋은가】');
     sec4.push('');
@@ -2109,6 +2109,7 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
     sec4.push('');
 
     const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
     const birthYear1 = y1;
     // 올해와 내년 세운 체크
     for (let yr = currentYear; yr <= currentYear + 2; yr++) {
@@ -2128,6 +2129,117 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
             sec4.push('');
         }
     }
+
+    // ===== 월별 연락 타이밍 (향후 6개월) =====
+    sec4.push('');
+    sec4.push('【월별 연락 타이밍 — 향후 6개월】');
+    sec4.push('');
+    sec4.push('"언제 연락하면 좋은가", "언제 상대에게서 연락이 올 수 있는가"를 월운(月運)으로 분석합니다.');
+    sec4.push('');
+
+    const MONTH_JIJI = [2,3,4,5,6,7,8,9,10,11,0,1]; // 인묘진사오미신유술해자축 (1~12월 지지)
+    const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+    let bestMonths = []; // {yr, mon, score, reasons, type}
+    for (let offset = 0; offset < 6; offset++) {
+        let mo = currentMonth + offset;
+        let yr = currentYear;
+        if (mo > 12) { mo -= 12; yr += 1; }
+
+        const yrGan = (yr - 4) % 10;
+        const monthJiIdx = MONTH_JIJI[mo - 1]; // 해당 월의 지지
+        const monthGanBase = WOLGAN_BASE[yrGan];
+        const monthOffset2 = ((monthJiIdx - 2) % 12 + 12) % 12;
+        const monthGanIdx = (monthGanBase + monthOffset2) % 10;
+        const monthGanOh = CHEONGAN_OHAENG[monthGanIdx];
+        const monthJiOh = JIJI_OHAENG[monthJiIdx];
+
+        let score = 0;
+        let reasons = [];
+        let contactType = ''; // 'me_first' or 'they_first' or 'both'
+
+        // 내가 먼저 연락하기 좋은 달
+        let meReasons = [];
+        if (monthGanOh === a1.yongsin || monthJiOh === a1.yongsin) { score += 2; meReasons.push('당신의 용신 기운이 강해지는 달 → 자신감과 결단력 UP'); }
+        if (checkCheonganHap(monthGanIdx, gan1)) { score += 1; meReasons.push('월간이 당신 일간과 합 → 적극적으로 행동하고 싶은 에너지'); }
+        if (checkYukhap(monthJiIdx, p1.day.ji_idx)) { score += 1; meReasons.push('월지가 당신 일지와 합 → 관계를 회복하고 싶은 마음이 솟음'); }
+
+        // 상대에게서 연락이 올 수 있는 달
+        let theyReasons = [];
+        if (monthGanOh === a2.yongsin || monthJiOh === a2.yongsin) { score += 2; theyReasons.push('상대 용신 기운 활성화 → 상대가 감정적으로 부드러워지는 시기'); }
+        if (checkCheonganHap(monthGanIdx, gan2)) { score += 2; theyReasons.push('월간이 상대 일간과 합 → 상대가 당신을 강하게 떠올림'); }
+        if (checkYukhap(monthJiIdx, p2.day.ji_idx)) { score += 2; theyReasons.push('월지가 상대 일지와 합 → 상대의 마음이 열리는 시기'); }
+        if (checkSamhap(monthJiIdx, p2.day.ji_idx)) { score += 1; theyReasons.push('월지가 상대 일지와 삼합 → 자연스러운 연결 에너지'); }
+
+        // 충이 있으면 피해야 할 달
+        let avoid = [];
+        if (checkYukchung(monthJiIdx, p2.day.ji_idx)) { score -= 2; avoid.push('월지가 상대 일지와 충 → 연락하면 다툼이나 거부 가능'); }
+        if (checkYukchung(monthJiIdx, p1.day.ji_idx)) { score -= 1; avoid.push('월지가 당신 일지와 충 → 감정 기복이 큰 달, 충동적 행동 주의'); }
+
+        if (meReasons.length && theyReasons.length) contactType = 'both';
+        else if (theyReasons.length) contactType = 'they_first';
+        else if (meReasons.length) contactType = 'me_first';
+
+        bestMonths.push({ yr, mo, score, meReasons, theyReasons, avoid, contactType });
+    }
+
+    // 점수 높은 순으로 정렬 후 출력
+    const sortedMonths = [...bestMonths].sort((a,b) => b.score - a.score);
+    const goodMonths = sortedMonths.filter(m => m.score > 0);
+    const badMonths = sortedMonths.filter(m => m.score < 0);
+
+    if (goodMonths.length) {
+        sec4.push('🟢 연락하기 좋은 시기:');
+        sec4.push('');
+        goodMonths.forEach(m => {
+            const label = `${m.yr}년 ${MONTH_NAMES[m.mo-1]}`;
+            let typeLabel = '';
+            if (m.contactType === 'both') typeLabel = ' [★ 쌍방 — 최고의 타이밍]';
+            else if (m.contactType === 'they_first') typeLabel = ' [상대에게서 연락 올 가능성]';
+            else if (m.contactType === 'me_first') typeLabel = ' [내가 먼저 하면 반응 좋음]';
+            sec4.push(`  📌 ${label}${typeLabel}`);
+            if (m.meReasons.length) {
+                sec4.push('    〈내가 먼저 연락하기 좋은 이유〉');
+                m.meReasons.forEach(r => sec4.push(`      • ${r}`));
+            }
+            if (m.theyReasons.length) {
+                sec4.push('    〈상대에게서 연락이 올 수 있는 이유〉');
+                m.theyReasons.forEach(r => sec4.push(`      • ${r}`));
+            }
+            sec4.push('');
+        });
+    }
+    if (badMonths.length) {
+        sec4.push('🔴 피해야 할 시기:');
+        sec4.push('');
+        badMonths.forEach(m => {
+            const label = `${m.yr}년 ${MONTH_NAMES[m.mo-1]}`;
+            sec4.push(`  ⛔ ${label}`);
+            m.avoid.forEach(r => sec4.push(`      • ${r}`));
+            sec4.push('');
+        });
+    }
+    const neutralMonths = bestMonths.filter(m => m.score === 0);
+    if (neutralMonths.length && !goodMonths.length) {
+        sec4.push('향후 6개월간 특별히 강한 시기 신호는 없습니다. 이 경우 인연의 끈 강도와 냉각 기간을 기준으로 판단하세요.');
+        sec4.push('');
+    }
+
+    // 가장 좋은 달 강조
+    if (goodMonths.length) {
+        const best = goodMonths[0];
+        sec4.push(`【결론: 가장 좋은 연락 시기】`);
+        sec4.push('');
+        if (best.contactType === 'both') {
+            sec4.push(`→ ${best.yr}년 ${MONTH_NAMES[best.mo-1]}이 최적입니다. 이 달에는 당신도 용기가 나고, 상대의 마음도 열려 있을 확률이 높습니다. 가벼운 안부로 시작해보세요.`);
+        } else if (best.contactType === 'they_first') {
+            sec4.push(`→ ${best.yr}년 ${MONTH_NAMES[best.mo-1]}에 상대가 당신을 떠올릴 가능성이 높습니다. 이 시기에 SNS에 긍정적인 모습을 올리거나, 공통 지인을 통해 안부가 전해지게 하면 효과적입니다. 상대가 먼저 연락하면 자연스럽게 받아주세요.`);
+        } else if (best.contactType === 'me_first') {
+            sec4.push(`→ ${best.yr}년 ${MONTH_NAMES[best.mo-1]}에 당신의 에너지가 좋습니다. 이 달에 가벼운 메시지를 보내보세요. "이거 보고 네 생각났어" 같은 부담 없는 내용으로.`);
+        }
+        sec4.push('');
+    }
+
     sec4.push('【연락 타이밍 조언】');
     if (bondStrength >= 3) {
         sec4.push('인연이 강한 편이므로, 헤어진 후 최소 3개월 이상의 냉각 기간 후 연락하세요.');
