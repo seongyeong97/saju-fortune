@@ -129,6 +129,19 @@
         .interp-item { margin: 1rem 0; padding: 1rem; background: var(--bg-input); border-radius: 8px; border-left: 3px solid var(--accent); }
         .interp-item h3 { color: var(--accent); font-size: 1rem; margin-bottom: 0.5rem; }
         .interp-item p { color: var(--text-dim); font-size: 0.9rem; margin: 0.3rem 0; }
+        a { text-decoration: none; color: #464feb; }
+        a:hover { text-decoration: underline; }
+        .data-table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        .data-table th, .data-table td { border: 1px solid var(--border); padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+        .data-table th { background-color: var(--bg-input); color: var(--gold); font-weight: 600; }
+        .data-table td { color: var(--text-dim); }
+        .btn-secondary { padding: 0.6rem 1.2rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+        .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-pdf { background: linear-gradient(135deg, #2980b9, #3498db); border: none; color: white; }
+        .btn-pdf:hover { opacity: 0.85; }
+        .ai-box { background: linear-gradient(135deg, rgba(70,79,235,0.1), rgba(123,47,247,0.1)); border: 1px solid #464feb; border-radius: 12px; padding: 1.2rem; margin-top: 1rem; }
+        .ai-box h3 { color: #464feb; margin-bottom: 0.5rem; }
+        .ai-box .ai-content { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; white-space: pre-wrap; }
         @media (max-width: 600px) {
             .input-grid { grid-template-columns: repeat(2, 1fr); }
             .ziwei-grid { font-size: 0.65rem; }
@@ -199,8 +212,13 @@
     </div>
 
     <div id="result">
+        <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+            <button class="btn-secondary btn-pdf" onclick="generatePDF()">📄 PDF 리포트 저장</button>
+            <button class="btn-secondary" onclick="generateAIInterp()" style="border-color:#464feb;color:#464feb;">🤖 AI 맞춤 해석</button>
+        </div>
         <div class="result-section" id="saju-section"></div>
         <div class="result-section" id="ohaeng-section"></div>
+        <div class="result-section" id="ai-interp-section" style="display:none;"></div>
         <div class="result-section" id="detailed-interp-section"></div>
         <div class="result-section" id="daeun-section"></div>
         <div class="result-section" id="today-section"></div>
@@ -1232,24 +1250,6 @@ function fullAnalysis(year, month, day, hour, minute, gender, calType, isLeap, u
 // ============================================================
 document.getElementById('cal-type').addEventListener('change', function() { document.getElementById('leap-group').style.display = this.value === 'lunar' ? '' : 'none'; });
 
-function analyze() {
-    const year = +document.getElementById('year').value;
-    const month = +document.getElementById('month').value;
-    const day = +document.getElementById('day').value;
-    const hour = +document.getElementById('hour').value;
-    const minute = +(document.getElementById('minute').value || 0);
-    const gender = document.getElementById('gender').value;
-    const calType = document.getElementById('cal-type').value;
-    const isLeap = document.getElementById('is-leap').value === "1";
-    const useTrueSolar = document.getElementById('true-solar').value === "1";
-    if (!year || !month || !day || document.getElementById('hour').value === '') { alert('모든 항목을 입력해주세요.'); return; }
-    try {
-        const data = fullAnalysis(year, month, day, hour, minute, gender, calType, isLeap, useTrueSolar);
-        renderAll(data);
-        document.getElementById('result').classList.add('active');
-    } catch(e) { alert('오류: ' + e.message); }
-}
-
 function renderAll(data) {
     renderSaju(data); renderOhaeng(data); renderDetailedInterp(data); renderDaeun(data); renderToday(data); renderZiwei(data);
 }
@@ -1428,6 +1428,194 @@ function findGoodDates() {
     top.forEach((d,i) => { const color = d.score>=75?'#2ecc71':d.score>=60?'#3498db':'#f39c12'; html += `<div style="background:var(--bg-input);border-radius:8px;padding:0.8rem;display:flex;align-items:center;gap:1rem;border-left:3px solid ${color};"><div style="font-size:1.3rem;font-weight:bold;color:${color};min-width:40px;">${i+1}</div><div style="flex:1;"><div style="font-weight:bold;">${d.date} (${d.weekday}) <span style="color:var(--text-dim);font-size:0.85rem;">${d.gan_hanja}${d.ji_hanja}일</span></div><div style="font-size:0.8rem;color:var(--text-dim);margin-top:0.2rem;">${d.reasons.join(' · ')||'기본 길일'}</div></div><div style="font-size:1.1rem;font-weight:bold;color:${color};">${d.score}점</div></div>`; });
     html += '</div></div>';
     document.getElementById('taegil-result').innerHTML = html;
+}
+
+// ============================================================
+// PDF 리포트 생성
+// ============================================================
+let _lastAnalysisData = null;
+function analyze() {
+    const year = +document.getElementById('year').value;
+    const month = +document.getElementById('month').value;
+    const day = +document.getElementById('day').value;
+    const hour = +document.getElementById('hour').value;
+    const minute = +(document.getElementById('minute').value || 0);
+    const gender = document.getElementById('gender').value;
+    const calType = document.getElementById('cal-type').value;
+    const isLeap = document.getElementById('is-leap').value === "1";
+    const useTrueSolar = document.getElementById('true-solar').value === "1";
+    if (!year || !month || !day || document.getElementById('hour').value === '') { alert('모든 항목을 입력해주세요.'); return; }
+    try {
+        const data = fullAnalysis(year, month, day, hour, minute, gender, calType, isLeap, useTrueSolar);
+        _lastAnalysisData = data;
+        renderAll(data);
+        document.getElementById('result').classList.add('active');
+        document.getElementById('ai-interp-section').style.display = 'none';
+    } catch(e) { alert('오류: ' + e.message); }
+}
+
+function generatePDF() {
+    if (!_lastAnalysisData) { alert('먼저 분석을 실행해주세요.'); return; }
+    const printArea = document.getElementById('result');
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>사주 리포트 - ${_lastAnalysisData.birth.year}.${_lastAnalysisData.birth.month}.${_lastAnalysisData.birth.day}</title><style>
+        body { font-family: 'Segoe UI', sans-serif; color: #222; padding: 2rem; line-height: 1.6; max-width: 800px; margin: 0 auto; }
+        h2 { color: #333; border-bottom: 2px solid #464feb; padding-bottom: 0.3rem; margin-top: 1.5rem; }
+        h3 { color: #464feb; margin-top: 1rem; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th, td { border: 1px solid #e6e6e6; padding: 0.5rem 0.8rem; text-align: center; }
+        th { background-color: #f5f5f5; }
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin: 2px; }
+        .tag-good { background: #e8f5e9; color: #2e7d32; }
+        .tag-warn { background: #fff3e0; color: #e65100; }
+        .tag-info { background: #e3f2fd; color: #1565c0; }
+        details { margin: 0.8rem 0; border: 1px solid #ddd; border-radius: 8px; padding: 0.8rem; }
+        summary { font-weight: bold; cursor: pointer; color: #333; }
+        .interp-content { margin-top: 0.5rem; color: #555; font-size: 0.9rem; }
+        .bar-fill { height: 20px; border-radius: 4px; }
+        @media print { body { padding: 0; } details { break-inside: avoid; } details[open] summary ~ * { break-inside: avoid; } }
+    </style></head><body>`);
+    printWin.document.write(`<h1 style="text-align:center;color:#464feb;">🔮 사주팔자 분석 리포트</h1>`);
+    printWin.document.write(`<p style="text-align:center;color:#666;">생년월일: ${_lastAnalysisData.birth.year}년 ${_lastAnalysisData.birth.month}월 ${_lastAnalysisData.birth.day}일 ${_lastAnalysisData.birth.hour}시 | 성별: ${_lastAnalysisData.birth.gender==='M'?'남':'여'} | 생성일: ${new Date().toLocaleDateString('ko-KR')}</p><hr>`);
+    // Clone and adapt content
+    const clone = printArea.cloneNode(true);
+    // Remove buttons
+    const btns = clone.querySelectorAll('button,.btn-secondary,.btn-pdf');
+    btns.forEach(b => b.remove());
+    // Open all details
+    clone.querySelectorAll('details').forEach(d => d.setAttribute('open',''));
+    printWin.document.write(clone.innerHTML);
+    printWin.document.write('</body></html>');
+    printWin.document.close();
+    setTimeout(() => { printWin.print(); }, 500);
+}
+
+// ============================================================
+// AI 맞춤 해석
+// ============================================================
+function generateAIInterp() {
+    if (!_lastAnalysisData) { alert('먼저 분석을 실행해주세요.'); return; }
+    const data = _lastAnalysisData;
+    const p = data.pillars;
+    const oh = data.ohaeng;
+    const interp = data.detailedInterp;
+    const sipsungs = data.sipsungs;
+
+    // 종합 AI 해석 생성 (서버 없이 사주 데이터 기반 심층 분석)
+    const ilganIdx = p.day.gan_idx;
+    const ilganName = CHEONGAN[ilganIdx];
+    const ilganHanja = CHEONGAN_HANJA[ilganIdx];
+    const strengthKey = oh.strength.includes("신강") ? "신강" : "신약";
+    const stars = sipsungs.map(s => s.star);
+    const starCounts = {};
+    stars.forEach(s => { starCounts[s] = (starCounts[s]||0) + 1; });
+
+    let ai = [];
+    ai.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    ai.push(`🤖 AI 맞춤 종합 해석 리포트`);
+    ai.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    ai.push('');
+
+    // 핵심 한줄 요약
+    const coreOh = OHAENG[oh.ilganOh];
+    const yongOh = OHAENG[oh.yongsin];
+    ai.push(`📌 핵심 요약: 당신은 ${ilganHanja}(${ilganName}) 일간, ${strengthKey} 사주입니다.`);
+    ai.push(`   ${coreOh} 기운을 중심으로 하며, ${yongOh}의 보완이 운을 좌우합니다.`);
+    ai.push('');
+
+    // 사주 격국 판정
+    ai.push(`▶ 격국 분석`);
+    const monthStar = sipsungs.find(s => s.position === '월지');
+    if (monthStar) {
+        ai.push(`  월지 십성: ${monthStar.star} → ${monthStar.star} 격(格)에 해당합니다.`);
+        const geukDesc = {"비견":"자아가 강하고 독립적. 자기 사업이나 프리랜서에 적합한 격국.","겁재":"도전적이고 경쟁심이 강한 격국. 투자·사업에서 큰 성과도 큰 리스크도 가능.","식신":"창의적이고 여유로운 격국. 타고난 재능으로 안정적 수입을 만듭니다.","상관":"비범하고 파격적인 격국. 기존 틀을 깨는 혁신가 기질.","편재":"활동적이고 사교적인 격국. 돈의 흐름을 읽는 감각이 뛰어남.","정재":"안정적이고 성실한 격국. 꾸준한 노력으로 재산을 축적.","편관":"권위와 카리스마의 격국. 조직 내 빠른 승진이 가능하나 스트레스 관리 필요.","정관":"명예와 질서의 격국. 사회적 인정과 안정된 직위를 얻기 쉬움.","편인":"학문과 기술의 격국. 특수 분야에서 전문가로 인정받음.","정인":"학위와 자격의 격국. 교육·연구 분야에서 빛을 발합니다."};
+        ai.push(`  → ${geukDesc[monthStar.star]||''}`);
+    }
+    ai.push('');
+
+    // 인생 테마 분석
+    ai.push(`▶ 인생 핵심 테마`);
+    const dominantStars = Object.entries(starCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    dominantStars.forEach(([star, cnt]) => {
+        const themes = {"비견":"자아실현·독립·경쟁","겁재":"도전·모험·변화","식신":"표현·창작·안정","상관":"혁신·파격·기술","편재":"유통·투자·인맥","정재":"저축·안정·성실","편관":"권력·승진·압박","정관":"명예·질서·책임","편인":"학문·고독·영감","정인":"학습·보호·인정"};
+        ai.push(`  • ${star}(${cnt}개): ${themes[star]||'다양한 가능성'}`);
+    });
+    ai.push('');
+
+    // 강점과 약점 심화
+    ai.push(`▶ 당신만의 강점`);
+    if (strengthKey==="신강") {
+        ai.push(`  ✓ 추진력과 실행력이 뛰어남 (자기 확신이 강함)`);
+        ai.push(`  ✓ 어려운 환경에서도 자기 길을 개척하는 힘`);
+        if ((starCounts["식신"]||0)+(starCounts["상관"]||0)>=2) ai.push(`  ✓ 식상이 강해 아이디어를 현실화하는 능력 탁월`);
+        if ((starCounts["편재"]||0)+(starCounts["정재"]||0)>=2) ai.push(`  ✓ 재성이 강해 돈을 다루는 감각이 좋음`);
+    } else {
+        ai.push(`  ✓ 환경 적응력이 뛰어남 (유연성과 협조성)`);
+        ai.push(`  ✓ 좋은 사람을 끌어당기는 매력 (귀인 복)`);
+        if ((starCounts["정인"]||0)+(starCounts["편인"]||0)>=2) ai.push(`  ✓ 인성이 강해 학습 능력과 분석력 우수`);
+        if ((starCounts["정관"]||0)+(starCounts["편관"]||0)>=1) ai.push(`  ✓ 관성이 있어 조직 내 인정받기 쉬움`);
+    }
+    ai.push('');
+    ai.push(`▶ 주의할 약점`);
+    if (strengthKey==="신강") {
+        ai.push(`  △ 고집이 세서 타인 의견을 무시하기 쉬움`);
+        ai.push(`  △ 지나친 자신감이 오만으로 비칠 수 있음`);
+        if ((starCounts["비견"]||0)+(starCounts["겁재"]||0)>=3) ai.push(`  △ 비겁 과다로 주변과의 경쟁·갈등 주의`);
+    } else {
+        ai.push(`  △ 자기 주장을 펼치기 어려워 기회를 놓치기 쉬움`);
+        ai.push(`  △ 우유부단함으로 중요한 타이밍을 놓칠 수 있음`);
+        if ((starCounts["편재"]||0)+(starCounts["정재"]||0)>=3) ai.push(`  △ 재성 과다로 체력 관리가 급선무`);
+    }
+    ai.push('');
+
+    // 현재 운세 흐름
+    ai.push(`▶ 현재 운세 흐름 (${new Date().getFullYear()}년)`);
+    if (data.seun) {
+        const s = data.seun;
+        ai.push(`  올해 세운: ${s.gan_hanja}${s.ji_hanja}(${s.gan}${s.ji}) ${s.animal}띠 해`);
+        ai.push(`  종합 점수: ${s.score}점`);
+        if (s.score >= 75) ai.push(`  → 🟢 올해는 전진의 해! 새로운 시도, 이직, 투자에 좋은 타이밍.`);
+        else if (s.score >= 60) ai.push(`  → 🟡 올해는 성장의 해. 무리하지 않는 선에서 적극적으로.`);
+        else if (s.score >= 45) ai.push(`  → 🟠 올해는 인내의 해. 내실을 다지고 준비하는 시기.`);
+        else ai.push(`  → 🔴 올해는 보수의 해. 현상 유지에 집중하고 건강 관리를 최우선으로.`);
+    }
+    if (data.daeun) {
+        const currentAge = new Date().getFullYear() - data.birth.year;
+        const curD = data.daeun.periods.find(p => p.age_start <= currentAge && currentAge <= p.age_end);
+        if (curD) {
+            ai.push(`  현재 대운: ${curD.gan_hanja}${curD.ji_hanja} (${curD.age_start}~${curD.age_end}세)`);
+            const dGan = OHAENG.indexOf(curD.ohaeng_gan);
+            const dJi = OHAENG.indexOf(curD.ohaeng_ji);
+            if (dGan===oh.yongsin || dJi===oh.yongsin) ai.push(`  → 용신 대운 중! 전반적으로 운이 좋은 시기입니다.`);
+            else ai.push(`  → 실력을 쌓고 기회를 대비하는 시기입니다.`);
+        }
+    }
+    ai.push('');
+
+    // 실전 조언
+    ai.push(`▶ 실전 맞춤 조언`);
+    ai.push(`  1. 용신(${yongOh}) 활용법:`);
+    ai.push(`     - 색상: ${OHAENG_COLOR[oh.yongsin]} 계열을 자주 착용`);
+    ai.push(`     - 방위: ${OHAENG_DIRECTION[oh.yongsin]} 방향이 유리`);
+    ai.push(`     - 계절: ${OHAENG_SEASON[oh.yongsin]}에 에너지가 높아짐`);
+    ai.push(`  2. 직업 방향:`);
+    if ((starCounts["정관"]||0)+(starCounts["정인"]||0)>=2) ai.push(`     → 안정적 전문직/공무원/대기업 추천`);
+    else if ((starCounts["식신"]||0)+(starCounts["상관"]||0)>=2) ai.push(`     → 창작/기술/프리랜서 분야 추천`);
+    else if ((starCounts["편재"]||0)>=2) ai.push(`     → 사업/영업/투자 분야 추천`);
+    else ai.push(`     → 자신의 용신 오행과 맞는 분야에서 일하면 성과가 큼`);
+    ai.push(`  3. 인간관계:`);
+    if (strengthKey==="신강") ai.push(`     → 경청하는 습관을 기르면 대인관계가 크게 좋아집니다.`);
+    else ai.push(`     → 자기 의견을 확실히 표현하는 연습이 필요합니다.`);
+    ai.push('');
+    ai.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    ai.push(`※ 본 해석은 사주팔자 이론에 기반한 참고 자료입니다.`);
+    ai.push(`  운명은 고정된 것이 아니며, 노력과 선택에 따라 달라질 수 있습니다.`);
+
+    // 렌더링
+    const section = document.getElementById('ai-interp-section');
+    section.style.display = 'block';
+    section.innerHTML = `<div class="ai-box"><h3>🤖 AI 맞춤 종합 해석</h3><div class="ai-content">${ai.join('\n')}</div></div>`;
+    section.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.target.closest('.input-card:nth-of-type(n+2)')) analyze(); });
