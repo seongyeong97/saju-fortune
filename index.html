@@ -239,7 +239,15 @@
             <div class="input-group"><label>성별</label><select id="gender2"><option value="F">여성</option><option value="M">남성</option></select></div>
         </div>
         <button class="btn-analyze" onclick="checkCompatibility()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);">💕 궁합 보기</button>
-        <button class="btn-analyze" onclick="checkReunion()" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);margin-top:0.5rem;">🔄 재회 가능성 보기</button>
+        <div style="margin-top:1rem;padding:0.8rem;background:var(--bg-input);border-radius:10px;border:1px solid rgba(255,143,0,0.3);">
+            <p style="font-size:0.85rem;color:#ff8f00;margin:0 0 0.5rem;">🔄 재회 분석 — 이별 시기를 입력하면 그 이후 월별 타이밍을 분석합니다</p>
+            <div class="input-grid" style="grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+                <div class="input-group"><label>이별 연도</label><input type="number" id="breakup-year" placeholder="2024" min="2000" max="2030"></div>
+                <div class="input-group"><label>이별 월</label><input type="number" id="breakup-month" placeholder="3" min="1" max="12"></div>
+                <div class="input-group"><label>이별 일(선택)</label><input type="number" id="breakup-day" placeholder="" min="1" max="31"></div>
+            </div>
+            <button class="btn-analyze" onclick="checkReunion()" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);margin-top:0.5rem;">🔄 재회 가능성 보기</button>
+        </div>
         <div id="compat-result" style="margin-top:1rem;"></div>
     </div>
 
@@ -1986,7 +1994,8 @@ function checkCompatibility() {
 // ============================================================
 // 재회 분석
 // ============================================================
-function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
+function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2, breakupYear, breakupMonth, breakupDay) {
+    if (!breakupYear) { breakupYear = new Date().getFullYear(); breakupMonth = new Date().getMonth()+1; breakupDay = 1; }
     const s1 = calcSajuPillars(y1,m1,d1,h1), s2 = calcSajuPillars(y2,m2,d2,h2);
     const p1 = s1.pillars, p2 = s2.pillars;
     const a1 = ohaengAnalysis(p1), a2 = ohaengAnalysis(p2);
@@ -2110,7 +2119,15 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
 
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
+    const breakupDate = new Date(breakupYear, breakupMonth - 1, breakupDay || 1);
+    const todayDate = new Date(currentYear, currentMonth - 1, 1);
+    const monthsSinceBreakup = (currentYear - breakupYear) * 12 + (currentMonth - breakupMonth);
     const birthYear1 = y1;
+
+    sec4.push(`📋 이별 시기: ${breakupYear}년 ${breakupMonth}월`);
+    sec4.push(`📋 현재까지 경과: 약 ${monthsSinceBreakup}개월`);
+    sec4.push('');
+
     // 올해와 내년 세운 체크
     for (let yr = currentYear; yr <= currentYear + 2; yr++) {
         const dGanji = getDayGanjiIndex(yr, 1, 1); // 간지 근사
@@ -2130,16 +2147,31 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
         }
     }
 
-    // ===== 월별 연락 타이밍 (향후 6개월) =====
+    // ===== 월별 연락 타이밍 (이별 후 ~ 향후 6개월) =====
     sec4.push('');
-    sec4.push('【월별 연락 타이밍 — 향후 6개월】');
+    sec4.push('【월별 연락 타이밍 분석】');
     sec4.push('');
     sec4.push('"언제 연락하면 좋은가", "언제 상대에게서 연락이 올 수 있는가"를 월운(月運)으로 분석합니다.');
     sec4.push('');
 
+    // 냉각기 계산
+    const cooldownMonths = bondStrength >= 3 ? 3 : 6;
+    const cooldownEnd = new Date(breakupYear, breakupMonth - 1 + cooldownMonths, 1);
+    if (todayDate < cooldownEnd) {
+        const remainCool = Math.ceil((cooldownEnd - todayDate) / (30*24*60*60*1000));
+        sec4.push(`⏳ 냉각기 진행 중: 아직 ${remainCool}개월 남았습니다 (권장 냉각기: ${cooldownMonths}개월)`);
+        sec4.push(`   냉각기 종료 예상: ${cooldownEnd.getFullYear()}년 ${cooldownEnd.getMonth()+1}월`);
+        sec4.push('   → 지금은 연락하지 마세요. 아래 타이밍은 냉각기 이후를 기준으로 합니다.');
+        sec4.push('');
+    } else {
+        sec4.push(`✅ 냉각기 완료: 이별 후 ${monthsSinceBreakup}개월 경과 (권장 ${cooldownMonths}개월 충족)`);
+        sec4.push('');
+    }
+
     const MONTH_JIJI = [2,3,4,5,6,7,8,9,10,11,0,1]; // 인묘진사오미신유술해자축 (1~12월 지지)
     const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
+    // 분석 시작점: 현재 달부터 향후 6개월
     let bestMonths = []; // {yr, mon, score, reasons, type}
     for (let offset = 0; offset < 6; offset++) {
         let mo = currentMonth + offset;
@@ -2228,9 +2260,18 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
     // 가장 좋은 달 강조
     if (goodMonths.length) {
         const best = goodMonths[0];
+        const bestDate = new Date(best.yr, best.mo - 1, 1);
         sec4.push(`【결론: 가장 좋은 연락 시기】`);
         sec4.push('');
-        if (best.contactType === 'both') {
+        if (bestDate < cooldownEnd) {
+            // 냉각기 안에 있는 좋은 달 → 냉각기 후 첫 좋은 달 찾기
+            const afterCool = goodMonths.find(m => new Date(m.yr, m.mo-1, 1) >= cooldownEnd);
+            if (afterCool) {
+                sec4.push(`→ 냉각기(${cooldownMonths}개월)를 고려하면, ${afterCool.yr}년 ${MONTH_NAMES[afterCool.mo-1]}이 현실적 최적 시기입니다.`);
+            } else {
+                sec4.push(`→ 냉각기 종료(${cooldownEnd.getFullYear()}년 ${cooldownEnd.getMonth()+1}월) 이후 가장 좋은 시기를 기다리세요.`);
+            }
+        } else if (best.contactType === 'both') {
             sec4.push(`→ ${best.yr}년 ${MONTH_NAMES[best.mo-1]}이 최적입니다. 이 달에는 당신도 용기가 나고, 상대의 마음도 열려 있을 확률이 높습니다. 가벼운 안부로 시작해보세요.`);
         } else if (best.contactType === 'they_first') {
             sec4.push(`→ ${best.yr}년 ${MONTH_NAMES[best.mo-1]}에 상대가 당신을 떠올릴 가능성이 높습니다. 이 시기에 SNS에 긍정적인 모습을 올리거나, 공통 지인을 통해 안부가 전해지게 하면 효과적입니다. 상대가 먼저 연락하면 자연스럽게 받아주세요.`);
@@ -2352,10 +2393,12 @@ function checkReunion() {
     const y1=+g('year'),m1=+g('month'),d1=+g('day'),h1=+g('hour'),g1=g('gender'),cal1=g('cal-type');
     const y2=+g('year2'),m2=+g('month2'),d2=+g('day2'),h2=+g('hour2'),g2=g('gender2'),cal2=g('cal-type2');
     if (!y1||!m1||!d1||!y2||!m2||!d2) { alert('두 사람 모두 입력해주세요.'); return; }
+    const bYear=+g('breakup-year'), bMonth=+g('breakup-month'), bDay=+g('breakup-day')||1;
+    if (!bYear||!bMonth) { alert('이별 시기(연도, 월)를 입력해주세요.'); return; }
     let sy1=y1,sm1=m1,sd1=d1,sy2=y2,sm2=m2,sd2=d2;
     if (cal1==='lunar') { const c=lunarToSolar(y1,m1,d1); sy1=c.year;sm1=c.month;sd1=c.day; }
     if (cal2==='lunar') { const c=lunarToSolar(y2,m2,d2); sy2=c.year;sm2=c.month;sd2=c.day; }
-    const data = analyzeReunion(sy1,sm1,sd1,h1,g1,sy2,sm2,sd2,h2,g2);
+    const data = analyzeReunion(sy1,sm1,sd1,h1,g1,sy2,sm2,sd2,h2,g2, bYear, bMonth, bDay);
 
     let html = `<div class="result-section" style="margin-top:1rem;"><h2>🔄 재회 분석 결과</h2>`;
     const order = ['bond','cause','possibility','timing','outlook','action'];
