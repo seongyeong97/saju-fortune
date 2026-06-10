@@ -647,36 +647,130 @@ function analyzeCompatibility(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
     const s1 = calcSajuPillars(y1,m1,d1,h1), s2 = calcSajuPillars(y2,m2,d2,h2);
     const p1 = s1.pillars, p2 = s2.pillars;
     let score = 0; const details = [];
-    // 일지
+    // 일지 (배우자궁)
     const ji1d = p1.day.ji_idx, ji2d = p2.day.ji_idx;
-    if (checkYukhap(ji1d,ji2d)) { score += 25; details.push({type:"육합(六合)",position:"일지",effect:"매우 좋음",desc:"일지가 육합 관계로 서로 깊이 끌리는 인연입니다."}); }
-    else if (checkSamhap(ji1d,ji2d)) { score += 20; details.push({type:"삼합(三合)",position:"일지",effect:"좋음",desc:"일지가 삼합 관계로 자연스러운 조화가 있습니다."}); }
-    else if (checkYukchung(ji1d,ji2d)) { score -= 15; details.push({type:"육충(六沖)",position:"일지",effect:"주의",desc:"일지가 충 관계로 갈등이 있을 수 있습니다."}); }
+    if (checkYukhap(ji1d,ji2d)) { score += 25; details.push({type:"육합(六合)",position:"일지",effect:"매우 좋음",desc:"일지가 육합 관계로 서로 깊이 끌리는 인연입니다. 만나면 자연스럽게 편안함을 느낍니다."}); }
+    else if (checkSamhap(ji1d,ji2d)) { score += 20; details.push({type:"삼합(三合)",position:"일지",effect:"좋음",desc:"일지가 삼합 관계로 자연스러운 조화가 있습니다. 함께하면 시너지가 납니다."}); }
+    else if (checkYukchung(ji1d,ji2d)) { score -= 15; details.push({type:"육충(六沖)",position:"일지",effect:"주의",desc:"일지가 충 관계로 갈등이 있을 수 있으나, 강한 끌림도 의미합니다. 밀당이 심합니다."}); }
     else { score += 5; details.push({type:"평범",position:"일지",effect:"보통",desc:"일지 관계가 평범하여 무난합니다."}); }
-    // 년지
+    // 년지 (가문/첫인상)
     const ji1y = p1.year.ji_idx, ji2y = p2.year.ji_idx;
-    if (checkYukhap(ji1y,ji2y)) { score += 15; details.push({type:"육합(六合)",position:"년지",effect:"좋음",desc:"년지 육합으로 가문간 인연이 좋습니다."}); }
-    else if (checkSamhap(ji1y,ji2y)) { score += 12; details.push({type:"삼합(三合)",position:"년지",effect:"좋음",desc:"년지 삼합으로 사회적 조화가 좋습니다."}); }
-    else if (checkYukchung(ji1y,ji2y)) { score -= 10; details.push({type:"육충(六沖)",position:"년지",effect:"주의",desc:"년지 충으로 가치관 차이가 있을 수 있습니다."}); }
+    if (checkYukhap(ji1y,ji2y)) { score += 15; details.push({type:"육합(六合)",position:"년지",effect:"좋음",desc:"년지 육합으로 첫인상이 좋고 가문간 인연이 깊습니다."}); }
+    else if (checkSamhap(ji1y,ji2y)) { score += 12; details.push({type:"삼합(三合)",position:"년지",effect:"좋음",desc:"년지 삼합으로 사회적 조화가 좋고 주변에서 어울린다고 합니다."}); }
+    else if (checkYukchung(ji1y,ji2y)) { score -= 10; details.push({type:"육충(六沖)",position:"년지",effect:"주의",desc:"년지 충으로 가치관·성장 배경 차이가 있을 수 있습니다."}); }
     else { score += 3; }
     // 오행 상생
     const oh1 = CHEONGAN_OHAENG[p1.day.gan_idx], oh2 = CHEONGAN_OHAENG[p2.day.gan_idx];
     if (SANGSAENG[oh1]===oh2 || SANGSAENG[oh2]===oh1) { score += 15; details.push({type:"오행상생",position:"일간",effect:"좋음",desc:`일간이 상생 관계(${OHAENG[oh1]}↔${OHAENG[oh2]})로 서로 도움을 줍니다.`}); }
     else if (oh1===oh2) { score += 10; details.push({type:"오행동일",position:"일간",effect:"보통",desc:`일간 오행이 같아(${OHAENG[oh1]}) 동질감이 있으나 경쟁도 가능.`}); }
-    else if (SANGGEUK[oh1]===oh2 || SANGGEUK[oh2]===oh1) { score -= 5; details.push({type:"오행상극",position:"일간",effect:"주의",desc:`일간이 상극 관계(${OHAENG[oh1]}↔${OHAENG[oh2]})로 갈등 요소.`}); }
+    else if (SANGGEUK[oh1]===oh2 || SANGGEUK[oh2]===oh1) { score -= 5; details.push({type:"오행상극",position:"일간",effect:"주의",desc:`일간이 상극 관계(${OHAENG[oh1]}↔${OHAENG[oh2]})로 갈등 요소가 있습니다.`}); }
     // 용신 보완
     const a1 = ohaengAnalysis(p1), a2 = ohaengAnalysis(p2);
-    if (a2.domOh === a1.yongsin || a1.domOh === a2.yongsin) { score += 15; details.push({type:"용신보완",position:"오행",effect:"매우 좋음",desc:"상대방이 내게 필요한 기운을 보완해줍니다."}); }
-    // 월지
-    if (checkYukhap(p1.month.ji_idx,p2.month.ji_idx) || checkSamhap(p1.month.ji_idx,p2.month.ji_idx)) { score += 10; details.push({type:"합",position:"월지",effect:"좋음",desc:"월지가 합으로 생활 패턴이 잘 맞습니다."}); }
+    if (a2.domOh === a1.yongsin || a1.domOh === a2.yongsin) { score += 15; details.push({type:"용신보완",position:"오행",effect:"매우 좋음",desc:"상대방이 내게 필요한 기운을 보완해줍니다. 함께 있으면 운이 좋아집니다."}); }
+    // 월지 (생활패턴)
+    if (checkYukhap(p1.month.ji_idx,p2.month.ji_idx) || checkSamhap(p1.month.ji_idx,p2.month.ji_idx)) { score += 10; details.push({type:"합",position:"월지",effect:"좋음",desc:"월지가 합으로 생활 리듬과 취미가 잘 맞습니다."}); }
+    else if (checkYukchung(p1.month.ji_idx,p2.month.ji_idx)) { score -= 5; details.push({type:"충",position:"월지",effect:"주의",desc:"월지가 충으로 생활 습관 차이가 있을 수 있습니다."}); }
+    // 천간합 (일간끼리)
+    if (checkCheonganHap(p1.day.gan_idx, p2.day.gan_idx)) { score += 20; details.push({type:"천간합",position:"일간",effect:"매우 좋음",desc:"일간이 천간합! 사주학에서 가장 강한 인연으로, 전생의 인연이라 할 정도입니다."}); }
+    // 시지 (미래/자녀 방향)
+    if (checkYukhap(p1.hour.ji_idx,p2.hour.ji_idx) || checkSamhap(p1.hour.ji_idx,p2.hour.ji_idx)) { score += 5; details.push({type:"합",position:"시지",effect:"좋음",desc:"시지가 합으로 미래 방향성이 일치합니다. 자녀 복도 좋습니다."}); }
+
     const total = Math.max(0, Math.min(100, 50 + score));
     let grade, summary;
-    if (total >= 85) { grade = "천생연분 ★★★★★"; summary = "매우 좋은 궁합입니다."; }
-    else if (total >= 70) { grade = "좋은 인연 ★★★★"; summary = "좋은 궁합입니다."; }
-    else if (total >= 55) { grade = "무난한 인연 ★★★"; summary = "보통의 궁합입니다."; }
-    else if (total >= 40) { grade = "노력 필요 ★★"; summary = "다소 갈등 요소가 있습니다."; }
-    else { grade = "주의 필요 ★"; summary = "상극 요소가 많습니다."; }
-    return { total_score: total, grade, summary, details };
+    if (total >= 85) { grade = "천생연분 ★★★★★"; summary = "전생부터 이어진 인연입니다."; }
+    else if (total >= 70) { grade = "좋은 인연 ★★★★"; summary = "서로에게 좋은 영향을 주는 관계입니다."; }
+    else if (total >= 55) { grade = "무난한 인연 ★★★"; summary = "노력하면 충분히 행복할 수 있는 관계입니다."; }
+    else if (total >= 40) { grade = "노력 필요 ★★"; summary = "서로 다른 점을 인정하는 것이 핵심입니다."; }
+    else { grade = "주의 필요 ★"; summary = "강한 끌림이 있으나 갈등도 큽니다."; }
+
+    // === 상세 카테고리별 해석 생성 ===
+    const categories = {};
+
+    // 1. 썸/밀당 단계
+    let somLines = [];
+    if (checkYukhap(ji1y,ji2y) || checkSamhap(ji1y,ji2y)) somLines.push("첫 만남에서 좋은 인상을 줍니다. 자연스럽게 가까워지기 쉬운 구조.");
+    else if (checkYukchung(ji1y,ji2y)) somLines.push("처음엔 호감보다 긴장감·경쟁심을 느낄 수 있습니다. 그러나 이것이 오히려 강한 관심으로 이어질 수 있습니다.");
+    else somLines.push("첫인상은 무난합니다. 깊이 알수록 매력을 발견하는 스타일.");
+    if (checkCheonganHap(p1.day.gan_idx,p2.day.gan_idx)) somLines.push("천간합으로 묘한 끌림이 있습니다. '왜 저 사람이 신경 쓰이지?' 하는 느낌이 강하게 올 수 있습니다.");
+    if (checkYukhap(ji1d,ji2d)) somLines.push("배우자궁 육합! 만나면 빠르게 친밀감이 형성됩니다. 썸 기간이 짧고 자연스럽게 발전합니다.");
+    else if (checkYukchung(ji1d,ji2d)) somLines.push("밀당이 심할 수 있습니다. 한 쪽이 다가가면 다른 쪽이 물러나는 패턴. 그러나 이 긴장감이 매력으로 작용합니다.");
+    if (SANGSAENG[oh1]===oh2) somLines.push(`1번이 2번에게 에너지를 주는 구조(${OHAENG[oh1]}→${OHAENG[oh2]}). 1번이 먼저 호감을 표현할 가능성이 높습니다.`);
+    else if (SANGSAENG[oh2]===oh1) somLines.push(`2번이 1번에게 에너지를 주는 구조(${OHAENG[oh2]}→${OHAENG[oh1]}). 2번이 먼저 다가올 수 있습니다.`);
+    categories.som = {title:"💘 썸·밀당 단계",content:somLines.join("\n")};
+
+    // 2. 연애 중
+    let datLines = [];
+    if (total >= 70) datLines.push("연애 만족도가 높습니다. 서로에게 위안과 즐거움을 주는 관계입니다.");
+    else if (total >= 55) datLines.push("연애는 무난하지만, 가끔 답답함을 느낄 수 있습니다. 솔직한 소통이 핵심입니다.");
+    else datLines.push("연애 중 갈등이 잦을 수 있습니다. 서로 다른 것을 원할 때 타협점을 찾는 노력이 필요합니다.");
+    if (checkYukhap(p1.month.ji_idx,p2.month.ji_idx)) datLines.push("생활 리듬이 잘 맞아 동거/데이트 시 편안합니다.");
+    else if (checkYukchung(p1.month.ji_idx,p2.month.ji_idx)) datLines.push("생활 패턴 차이로 데이트 일정 맞추기가 어려울 수 있습니다. 각자의 시간도 존중해주세요.");
+    if (SANGGEUK[oh1]===oh2) datLines.push(`1번(${OHAENG[oh1]})이 2번(${OHAENG[oh2]})을 극하는 구조. 1번이 주도권을 잡으려 할 때 2번이 압박감을 느낄 수 있습니다.`);
+    else if (SANGGEUK[oh2]===oh1) datLines.push(`2번(${OHAENG[oh2]})이 1번(${OHAENG[oh1]})을 극하는 구조. 2번의 의견이 강할 때 1번이 억눌린 느낌을 받을 수 있습니다.`);
+    if (a2.domOh===a1.yongsin) datLines.push("2번이 1번에게 용신 기운을 줍니다. 1번은 2번과 함께 있으면 운이 좋아지는 것을 체감합니다.");
+    if (a1.domOh===a2.yongsin) datLines.push("1번이 2번에게 용신 기운을 줍니다. 2번은 1번 덕분에 일이 잘 풀린다고 느낍니다.");
+    const ey1 = CHEONGAN_EUMYANG[p1.day.gan_idx], ey2 = CHEONGAN_EUMYANG[p2.day.gan_idx];
+    if (ey1 !== ey2) datLines.push("음양이 달라 자연스럽게 역할 분담이 됩니다. 한 쪽이 적극적이면 다른 쪽이 받아주는 구조.");
+    else datLines.push("음양이 같아 두 사람 모두 같은 방향으로 움직이려 합니다. 리드 역할에 대한 합의가 필요합니다.");
+    categories.dating = {title:"💑 연애 중 궁합",content:datLines.join("\n")};
+
+    // 3. 이별/재회
+    let breakLines = [];
+    if (checkYukhap(ji1d,ji2d) || checkCheonganHap(p1.day.gan_idx,p2.day.gan_idx)) { breakLines.push("합의 인연이 강해 헤어져도 서로 잊기 어렵습니다. 재회 확률이 높은 구조입니다."); breakLines.push("다만 같은 이유로 다시 만나면 같은 문제가 반복될 수 있으니, 재회 전에 변화가 필요합니다."); }
+    else if (checkYukchung(ji1d,ji2d)) { breakLines.push("충의 관계라 한 번 멀어지면 극단적으로 돌아서기 쉽습니다. 미련보다 분노가 앞설 수 있습니다."); breakLines.push("재회하려면 충분한 냉각 기간(최소 6개월)이 필요합니다. 급하게 연락하면 더 꼬입니다."); }
+    else { breakLines.push("인연의 끈이 특별히 강하지도 약하지도 않습니다. 이별 후에는 자연스럽게 잊혀질 수 있습니다."); breakLines.push("재회를 원한다면 새로운 매력을 보여줄 수 있는 성장이 핵심입니다."); }
+    if (total >= 70) breakLines.push("기본 궁합이 좋으므로 이별의 원인만 해결되면 재결합 후 더 단단해질 수 있습니다.");
+    else if (total < 45) breakLines.push("근본적 궁합 차이가 크므로, 재회보다 새로운 인연을 만나는 것이 행복에 가까울 수 있습니다.");
+    categories.breakup = {title:"💔 이별·재회 가능성",content:breakLines.join("\n")};
+
+    // 4. 결혼 추천
+    let marLines = [];
+    const marriageScore = total + (checkYukhap(p1.month.ji_idx,p2.month.ji_idx)?10:0) + (checkYukhap(p1.hour.ji_idx,p2.hour.ji_idx)?8:0) + (a2.domOh===a1.yongsin||a1.domOh===a2.yongsin?10:0) - (checkYukchung(p1.month.ji_idx,p2.month.ji_idx)?15:0);
+    const mScore = Math.max(0,Math.min(100, marriageScore));
+    if (mScore >= 80) { marLines.push("🟢 결혼 강력 추천! 함께하면 서로의 부족함을 채워주는 최고의 파트너입니다."); marLines.push("결혼 후 안정감이 높고, 경제적·정서적으로 시너지가 예상됩니다."); }
+    else if (mScore >= 65) { marLines.push("🟢 결혼 추천. 기본적으로 잘 맞는 구조입니다."); marLines.push("결혼 생활에서 소소한 마찰은 있겠지만 근본적 문제는 아닙니다."); }
+    else if (mScore >= 50) { marLines.push("🟡 조건부 추천. 결혼 전 충분한 동거/시간이 필요합니다."); marLines.push("생활 습관 차이를 미리 확인하고, 타협 가능한지 점검하세요."); }
+    else if (mScore >= 35) { marLines.push("🟠 신중하게. 결혼보다 연애 단계에서 더 오래 검증이 필요합니다."); marLines.push("상대의 단점을 알면서도 받아들일 수 있는지 스스로에게 물어보세요."); }
+    else { marLines.push("🔴 결혼은 매우 신중해야 합니다. 갈등 해결 능력이 전제조건입니다."); marLines.push("반드시 2년 이상의 교제 기간을 갖고, 위기 상황에서의 상대 모습을 확인하세요."); }
+    // 시지 (자녀/미래)
+    if (checkYukhap(p1.hour.ji_idx,p2.hour.ji_idx)||checkSamhap(p1.hour.ji_idx,p2.hour.ji_idx)) marLines.push("시주가 합으로 미래 비전이 일치합니다. 자녀 양육관도 비슷하여 육아 갈등이 적습니다.");
+    else if (checkYukchung(p1.hour.ji_idx,p2.hour.ji_idx)) marLines.push("시주가 충으로 미래 계획(자녀, 노후)에 대한 견해 차이가 있을 수 있습니다. 미리 대화하세요.");
+    categories.marriage = {title:"💍 결혼 추천도",content:marLines.join("\n"),score:mScore};
+
+    // 5. 소통/갈등 스타일
+    let commLines = [];
+    const ilgan1Name = CHEONGAN[p1.day.gan_idx], ilgan2Name = CHEONGAN[p2.day.gan_idx];
+    const commStyle = {"갑":"직선적이고 솔직한 표현","을":"우회적이고 눈치 보는 표현","병":"화끈하고 감정적인 표현","정":"조용하지만 깊은 내면","무":"과묵하고 행동으로 보여줌","기":"세심하지만 속으로 삼킴","경":"직설적이고 단도직입","신":"날카롭고 비판적","임":"유머러스하고 다양한 화법","계":"감성적이고 직관적"};
+    commLines.push(`1번(${ilgan1Name}): ${commStyle[ilgan1Name]||'보통'}`);
+    commLines.push(`2번(${ilgan2Name}): ${commStyle[ilgan2Name]||'보통'}`);
+    if (oh1===oh2) commLines.push("→ 소통 스타일이 비슷해 대화가 잘 통합니다. 다만 같은 약점을 공유합니다.");
+    else if (SANGSAENG[oh1]===oh2||SANGSAENG[oh2]===oh1) commLines.push("→ 상생 관계로 한 쪽의 말을 다른 쪽이 잘 받아줍니다. 자연스러운 소통.");
+    else if (SANGGEUK[oh1]===oh2||SANGGEUK[oh2]===oh1) commLines.push("→ 상극 관계로 의견 충돌 시 쉽게 격앙됩니다. '나-전달법'으로 소통하는 연습이 필요합니다.");
+    // 갈등 포인트
+    if (checkYukchung(ji1d,ji2d)) commLines.push("⚡ 핵심 갈등: 사소한 일에 감정이 크게 요동칩니다. 쿨타임을 두고 대화하세요.");
+    if (checkYukchung(p1.month.ji_idx,p2.month.ji_idx)) commLines.push("⚡ 생활 갈등: 정리정돈, 수면 패턴, 식습관 등에서 마찰 가능.");
+    categories.communication = {title:"🗣️ 소통·갈등 스타일",content:commLines.join("\n")};
+
+    // 6. 성적 궁합/끌림
+    let chemLines = [];
+    if (checkYukhap(ji1d,ji2d)) chemLines.push("육합으로 물리적 끌림이 매우 강합니다. 스킨십에 대한 욕구가 서로 잘 맞습니다.");
+    else if (checkYukchung(ji1d,ji2d)) chemLines.push("충 관계는 역설적으로 강렬한 끌림을 만듭니다. '미우나 고우나 끌리는' 타입.");
+    else if (checkSamhap(ji1d,ji2d)) chemLines.push("삼합으로 편안한 친밀감. 격정보다는 따뜻한 스킨십을 선호합니다.");
+    else chemLines.push("물리적 끌림은 보통 수준. 감정적 교류를 통해 친밀도를 높여야 합니다.");
+    if (ey1!==ey2) chemLines.push("음양이 달라 자연스럽게 끌리는 에너지가 있습니다.");
+    if (checkCheonganHap(p1.day.gan_idx,p2.day.gan_idx)) chemLines.push("천간합! 영혼적 차원의 끌림이 있습니다. 눈빛만으로 소통되는 느낌.");
+    categories.chemistry = {title:"🔥 끌림·케미",content:chemLines.join("\n")};
+
+    // 7. 조언
+    let advLines = [];
+    if (total >= 70) { advLines.push("좋은 궁합이니 자신감을 가지세요. 다만 방심은 금물, 꾸준한 관심 표현이 중요합니다."); }
+    else if (total >= 50) { advLines.push("서로 다른 부분을 '결함'이 아닌 '다름'으로 인정하는 것이 핵심입니다."); advLines.push("주 1회 이상 진지한 대화 시간을 갖는 것을 추천합니다."); }
+    else { advLines.push("갈등이 잦을 수 있으나, 이를 통해 성장하는 관계도 많습니다."); advLines.push("감정적으로 힘들 때 제3자(상담사)의 도움을 받는 것도 좋은 방법입니다."); }
+    if (a2.domOh===a1.yongsin) advLines.push(`💡 1번 TIP: 2번과 함께 있을 때 ${OHAENG_COLOR[a1.yongsin]} 계열 옷을 입으면 더 좋은 기운이 흐릅니다.`);
+    if (a1.domOh===a2.yongsin) advLines.push(`💡 2번 TIP: 1번과 함께 있을 때 ${OHAENG_COLOR[a2.yongsin]} 계열 옷을 입으면 더 좋은 기운이 흐릅니다.`);
+    categories.advice = {title:"💡 관계 조언",content:advLines.join("\n")};
+
+    return { total_score: total, grade, summary, details, categories };
 }
 
 // 택일
@@ -949,6 +1043,110 @@ function generateDetailedInterp(birthYear, pillars, sipsungs, ohaengData, daeun,
     overallLines.push(strengthKey==="신약" ? "  • 무리하지 말고 귀인의 도움을 적극 받아들이세요." : "  • 자신감을 바탕으로 적극 도전하되, 겸손함을 잃지 마세요.");
     result.overall = {title:"종합 인생 흐름",icon:"🌊",content:overallLines.join("\n")};
 
+    // ===== 추가 해석: 12운성 =====
+    const TWELVE_UNSUNG = ["장생","목욕","관대","건록","제왕","쇠","병","사","묘","절","태","양"];
+    const TWELVE_UNSUNG_TABLE = [[1,6,10,9,10,9,7,6,5,4,3,2],[6,1,9,10,9,10,6,7,4,5,2,3],[10,9,1,6,3,2,10,9,7,6,5,4],[9,10,6,1,2,3,9,10,6,7,4,5],[10,9,3,2,1,6,5,4,10,9,7,6],[9,10,2,3,6,1,4,5,9,10,6,7],[7,6,10,9,5,4,1,6,10,9,3,2],[6,7,9,10,4,5,6,1,9,10,2,3],[5,4,7,6,10,9,10,9,1,6,3,2],[4,5,6,7,9,10,9,10,6,1,2,3],[3,2,5,4,7,6,3,2,3,2,1,6],[2,3,4,5,6,7,2,3,2,3,6,1]];
+    function getUnsungIdx(ganIdx, jiIdx) { return TWELVE_UNSUNG_TABLE[ganIdx] ? TWELVE_UNSUNG_TABLE[ganIdx][jiIdx] : 0; }
+    // 간략 테이블 대체: 일간 기준 12운성 순서
+    const UNSUNG_START = [1,6,10,9,10,9,7,6,5,4]; // 장생 시작 지지 인덱스
+    function calc12Unsung(ganIdx, jiIdx) {
+        const startJi = [11,6,2,9,2,9,8,3,11,6]; // 각 천간의 장생 시작 지지
+        const diff = (jiIdx - startJi[ganIdx] + 12) % 12;
+        return diff;
+    }
+    const dayUnsungIdx = calc12Unsung(ilganIdx, pillars.day.ji_idx);
+    const dayUnsung = TWELVE_UNSUNG[dayUnsungIdx];
+    const UNSUNG_MEANING = {
+        "장생":"새 생명의 시작. 학습력과 성장 잠재력이 높습니다. 귀인의 도움을 받기 쉬운 구조.",
+        "목욕":"외적 매력이 강하고 이성운이 좋습니다. 다만 충동적 결정 주의. 예술적 감각.",
+        "관대":"자신감 넘치고 사교적. 명예욕이 있으며 인정받고 싶어합니다. 학업·시험에 강.",
+        "건록":"안정적이고 독립심 강함. 스스로 일어서는 힘이 있고, 직장운이 좋습니다.",
+        "제왕":"최고의 운. 권위와 카리스마. 그러나 오만하면 극에서 쇠로 넘어갈 수 있습니다.",
+        "쇠":"성숙하고 안정적. 젊은 시절보다 중년 이후에 빛을 발합니다. 꾸준한 노력형.",
+        "병":"내면의 고민이 많고 예민합니다. 그러나 그만큼 깊은 통찰력을 가집니다.",
+        "사":"극적인 변화를 겪기 쉽습니다. 한 번 크게 넘어져도 다시 일어나는 강한 생명력.",
+        "묘":"숨겨진 재능이 있습니다. 조용히 축적한 것이 적절한 시기에 폭발합니다.",
+        "절":"고독하지만 독창적. 남들과 다른 길을 가지만, 그것이 오히려 성공의 열쇠.",
+        "태":"새로운 것에 대한 호기심. 발상이 참신하고 아이디어가 풍부합니다.",
+        "양":"서서히 성장하는 타입. 조급해하지 않으면 큰 그릇이 됩니다. 만년에 빛."
+    };
+    let unsungLines = [`【일주 12운성: ${dayUnsung}(${TWELVE_UNSUNG.indexOf(dayUnsung)+1}/12)】`, UNSUNG_MEANING[dayUnsung] || ""];
+    // 각 기둥별
+    const yearUnsung = TWELVE_UNSUNG[calc12Unsung(ilganIdx, pillars.year.ji_idx)];
+    const monthUnsung = TWELVE_UNSUNG[calc12Unsung(ilganIdx, pillars.month.ji_idx)];
+    const hourUnsung = TWELVE_UNSUNG[calc12Unsung(ilganIdx, pillars.hour.ji_idx)];
+    unsungLines.push('', `【기둥별 12운성】`, `  • 년주(초년운): ${yearUnsung} — ${UNSUNG_MEANING[yearUnsung]?.split('.')[0]||'보통'}.`, `  • 월주(청년운): ${monthUnsung} — ${UNSUNG_MEANING[monthUnsung]?.split('.')[0]||'보통'}.`, `  • 일주(장년운): ${dayUnsung} — 핵심 운성.`, `  • 시주(말년운): ${hourUnsung} — ${UNSUNG_MEANING[hourUnsung]?.split('.')[0]||'보통'}.`);
+    result.unsung = {title:"12운성 (十二運星)",icon:"⭐",content:unsungLines.join("\n")};
+
+    // ===== 추가 해석: 공망 =====
+    const dayPillarNum = pillars.day.gan_idx * 12 + pillars.day.ji_idx; // 간지 순서 번호 (60갑자)
+    const dayGanJiIdx = (pillars.day.gan_idx + pillars.day.ji_idx * 10) % 60; // 실제로는 간단히 계산
+    // 공망: 일주 기준으로 해당 순(旬)에서 빠진 두 지지
+    const dayGanIdx60 = (() => { for(let i=0;i<60;i++) if(i%10===pillars.day.gan_idx && i%12===pillars.day.ji_idx) return i; return 0; })();
+    const xunStart = Math.floor(dayGanIdx60 / 10) * 10;
+    const gongmang1 = (xunStart + 10) % 12;
+    const gongmang2 = (xunStart + 11) % 12;
+    let gmLines = [`당신의 공망(空亡)은 ${JIJI[gongmang1]}(${['자','축','인','묘','진','사','오','미','신','유','술','해'][gongmang1]})·${JIJI[gongmang2]}(${['자','축','인','묘','진','사','오','미','신','유','술','해'][gongmang2]})입니다.`];
+    gmLines.push('', '공망이란 해당 지지의 기운이 비어있다는 의미입니다. 공망에 해당하는 해(年)나 시기에는:');
+    gmLines.push('  • 계획대로 되지 않을 수 있으므로 중요한 결정을 신중히.', '  • 정신적·영적 성장에는 오히려 좋은 시기입니다.', '  • 욕심을 비우면 뜻밖의 깨달음을 얻습니다.');
+    // 사주 내에 공망이 있는지
+    const pillarsJi = [pillars.year.ji_idx, pillars.month.ji_idx, pillars.hour.ji_idx];
+    const gmInSaju = pillarsJi.filter(j => j===gongmang1||j===gongmang2);
+    if (gmInSaju.length > 0) gmLines.push('', `※ 사주 내 공망 해당 기둥이 ${gmInSaju.length}개 있습니다. 해당 영역에서 예상치 못한 변화를 경험하기 쉽습니다.`);
+    else gmLines.push('', '※ 사주 안에 공망이 없어 전반적으로 안정적인 구조입니다.');
+    result.gongmang = {title:"공망 (空亡)",icon:"🕳️",content:gmLines.join("\n")};
+
+    // ===== 추가 해석: 신살 =====
+    let ssLines = [];
+    // 역마살
+    const YEOKMA = {2:8,5:11,8:2,11:5, 0:6,3:9,6:0,9:3, 1:7,4:10,7:1,10:4}; // 년지 기준 역마
+    const yearJi = pillars.year.ji_idx;
+    const yeokmaJi = YEOKMA[yearJi];
+    const hasYeokma = pillarsJi.includes(yeokmaJi) || pillars.day.ji_idx === yeokmaJi;
+    if (hasYeokma) ssLines.push("🐴 【역마살】 이동·변화가 많은 사주입니다. 한 곳에 정착보다 해외, 출장, 이직이 잦을 수 있습니다. 이 기운을 긍정적으로 활용하면 글로벌한 활동 영역을 가집니다.");
+    // 도화살 (년지 기준)
+    const DOHWA = {2:4,5:1,8:10,11:7, 0:10,3:7,6:4,9:1, 1:7,4:4,7:1,10:10};
+    const dohwaJi = DOHWA[yearJi];
+    const hasDohwa = pillarsJi.includes(dohwaJi) || pillars.day.ji_idx === dohwaJi;
+    if (hasDohwa) ssLines.push("🌸 【도화살(桃花殺)】 외모적 매력이 강하고 이성에게 인기가 많습니다. 예술·연예·서비스업에서 강점. 다만 이성 관계 복잡해질 수 있으니 자기 절제 필요.");
+    // 화개살
+    const HWAGAE = {2:6,5:9,8:0,11:3, 0:0,3:3,6:6,9:9, 1:3,4:6,7:9,10:0};
+    const hwagaeJi = HWAGAE[yearJi];
+    const hasHwagae = pillarsJi.includes(hwagaeJi) || pillars.day.ji_idx === hwagaeJi;
+    if (hasHwagae) ssLines.push("🎨 【화개살(華蓋殺)】 예술적 재능과 종교적 영성이 강합니다. 독창적 세계관을 가지고 있으며, 고독을 즐길 줄 압니다. 창작 분야에서 큰 성과 가능.");
+    // 천을귀인
+    const CHEONUL = {0:[1,7],1:[0,8],2:[9,11],3:[9,11],4:[1,7],5:[0,8],6:[1,7],7:[6,2],8:[3,5],9:[3,5]};
+    const cuList = CHEONUL[ilganIdx] || [];
+    const hasCU = pillarsJi.some(j => cuList.includes(j)) || cuList.includes(pillars.day.ji_idx);
+    if (hasCU) ssLines.push("👼 【천을귀인(天乙貴人)】 위기 때 도움을 주는 귀인이 나타나기 쉬운 사주입니다. 대인관계가 좋고, 어려운 상황에서도 기적적으로 해결되는 경우가 많습니다.");
+    // 문창귀인
+    const MUNCHANG = {0:5,1:6,2:8,3:[9],4:8,5:9,6:11,7:0,8:2,9:3};
+    const mcJi = Array.isArray(MUNCHANG[ilganIdx]) ? MUNCHANG[ilganIdx] : [MUNCHANG[ilganIdx]];
+    const hasMC = pillarsJi.some(j => mcJi.includes(j));
+    if (hasMC) ssLines.push("📚 【문창귀인(文昌貴人)】 학문과 시험에 강한 사주입니다. 공부를 잘하고, 자격증·시험·학위에서 좋은 결과를 얻습니다.");
+    if (ssLines.length === 0) ssLines.push("특별히 강한 신살이 보이지 않습니다. 안정적인 사주 구조입니다.");
+    result.sinsal = {title:"신살 (神殺) 분석",icon:"✨",content:ssLines.join("\n\n")};
+
+    // ===== 추가: 인생 시기별 운세 =====
+    let periodLines = [];
+    periodLines.push(`【초년운(1~20세)】 년주 기준: ${yearUnsung}`);
+    if (["장생","관대","건록","제왕"].includes(yearUnsung)) periodLines.push("  초년에 좋은 환경에서 성장합니다. 학업이 순조롭고 부모 덕이 있습니다.");
+    else if (["병","사","절"].includes(yearUnsung)) periodLines.push("  초년에 어려움을 겪을 수 있으나, 이것이 강한 정신력의 밑거름이 됩니다.");
+    else periodLines.push("  보통의 초년기. 특별한 어려움 없이 안정적으로 성장합니다.");
+    periodLines.push('', `【청년운(20~40세)】 월주 기준: ${monthUnsung}`);
+    if (["장생","관대","건록","제왕"].includes(monthUnsung)) periodLines.push("  청년기에 사회 진출이 순조롭습니다. 승진과 성취가 빠릅니다.");
+    else if (["목욕"].includes(monthUnsung)) periodLines.push("  청년기에 이성 관계 활발. 자기 관리를 잘 하면 인기를 사회적 성취로 연결.");
+    else periodLines.push("  안정적으로 기반을 다지는 시기. 꾸준한 노력이 후반에 결실을 맺습니다.");
+    periodLines.push('', `【장년운(40~60세)】 일주 기준: ${dayUnsung}`);
+    if (["건록","제왕"].includes(dayUnsung)) periodLines.push("  인생의 전성기가 장년에 옵니다. 사회적 지위와 재물이 동시에 성장합니다.");
+    else if (["장생","관대"].includes(dayUnsung)) periodLines.push("  새로운 도전이 결실을 맺는 시기. 40대 이후 제2의 전성기 가능.");
+    else periodLines.push("  내면의 성숙을 통해 진정한 자아를 찾는 시기입니다.");
+    periodLines.push('', `【말년운(60세~)】 시주 기준: ${hourUnsung}`);
+    if (["장생","관대","건록","제왕"].includes(hourUnsung)) periodLines.push("  노년이 편안하고 자녀 복이 있습니다. 건강하게 오래 사는 구조.");
+    else if (["쇠","양"].includes(hourUnsung)) periodLines.push("  조용하지만 안정적인 노후. 취미와 봉사 활동으로 보람을 찾습니다.");
+    else periodLines.push("  노후 대비를 일찍 시작하면 편안한 말년을 보장합니다.");
+    result.lifePeriod = {title:"인생 시기별 운세",icon:"📅",content:periodLines.join("\n")};
+
     return result;
 }
 
@@ -1034,7 +1232,7 @@ function renderDetailedInterp(data) {
     if (!interp) { document.getElementById('detailed-interp-section').innerHTML = ''; return; }
     let html = '<h2>◈ 사주 상세 해석</h2>';
     html += `<p style="color:var(--text-dim);margin-bottom:1rem;">십성: ${data.sipsungs.map(s=>`<span class="tag tag-info">${s.position}: ${s.star}</span>`).join(' ')}</p>`;
-    ['personality','love','money','career','health','social','overall'].forEach(key => {
+    ['personality','love','money','career','health','social','unsung','sinsal','gongmang','lifePeriod','overall'].forEach(key => {
         const item = interp[key]; if (!item) return;
         html += `<details class="interp-detail" ${key==='personality'?'open':''}><summary>${item.icon} ${item.title}</summary><div class="interp-content">${item.content.replace(/\n\n/g,'</p><p style="margin-top:0.8rem;">').replace(/\n/g,'<br>')}</div></details>`;
     });
@@ -1086,9 +1284,37 @@ function checkCompatibility() {
     if (cal1==='lunar') { const c=lunarToSolar(y1,m1,d1); sy1=c.year;sm1=c.month;sd1=c.day; }
     if (cal2==='lunar') { const c=lunarToSolar(y2,m2,d2); sy2=c.year;sm2=c.month;sd2=c.day; }
     const data = analyzeCompatibility(sy1,sm1,sd1,h1,g1,sy2,sm2,sd2,h2,g2);
-    let html = `<div class="result-section" style="margin-top:1rem;"><h2>💕 궁합 결과</h2><div style="text-align:center;margin:1.5rem 0;"><div style="font-size:3rem;font-weight:bold;color:var(--accent);">${data.total_score}점</div><div style="font-size:1.2rem;color:var(--gold);margin-top:0.5rem;">${data.grade}</div><p style="color:var(--text-dim);margin-top:0.5rem;">${data.summary}</p></div><div>`;
+    let html = `<div class="result-section" style="margin-top:1rem;"><h2>💕 궁합 결과</h2><div style="text-align:center;margin:1.5rem 0;"><div style="font-size:3rem;font-weight:bold;color:var(--accent);">${data.total_score}점</div><div style="font-size:1.2rem;color:var(--gold);margin-top:0.5rem;">${data.grade}</div><p style="color:var(--text-dim);margin-top:0.5rem;">${data.summary}</p></div>`;
+    // 기본 상세 분석
+    html += '<h3 style="margin:1rem 0 0.5rem;">📊 사주 요소별 분석</h3><div>';
     data.details.forEach(d => { const color = d.effect==='매우 좋음'?'#2ecc71':d.effect==='좋음'?'#3498db':d.effect==='주의'?'#e67e22':'var(--text-dim)'; html += `<div style="background:var(--bg-input);border-radius:8px;padding:0.8rem;margin:0.5rem 0;border-left:3px solid ${color};"><span class="tag" style="background:${color}22;color:${color};">${d.type}</span><span style="color:var(--text-dim);font-size:0.85rem;margin-left:0.5rem;">${d.desc}</span></div>`; });
-    html += '</div></div>';
+    html += '</div>';
+    // 카테고리별 상세 해석
+    if (data.categories) {
+        const cats = data.categories;
+        const order = ['som','dating','chemistry','breakup','marriage','communication','advice'];
+        order.forEach(key => {
+            if (!cats[key]) return;
+            const cat = cats[key];
+            html += `<div style="margin-top:1.2rem;background:var(--bg-input);border-radius:12px;padding:1rem;"><h3 style="margin:0 0 0.6rem;font-size:1rem;">${cat.title}`;
+            if (cat.score !== undefined) html += ` <span style="color:var(--accent);font-weight:bold;">${cat.score}점</span>`;
+            html += `</h3><div style="font-size:0.9rem;color:var(--text);line-height:1.7;">`;
+            cat.content.split('\n').forEach(line => {
+                if (!line.trim()) return;
+                let style = '';
+                if (line.startsWith('🟢')) style='color:#2ecc71;font-weight:bold;';
+                else if (line.startsWith('🟡')) style='color:#f1c40f;font-weight:bold;';
+                else if (line.startsWith('🟠')) style='color:#e67e22;font-weight:bold;';
+                else if (line.startsWith('🔴')) style='color:#e74c3c;font-weight:bold;';
+                else if (line.startsWith('⚡')) style='color:#e67e22;';
+                else if (line.startsWith('💡')) style='color:#3498db;';
+                else if (line.startsWith('→')) style='color:var(--accent);';
+                html += `<p style="margin:0.3rem 0;${style}">${line}</p>`;
+            });
+            html += '</div></div>';
+        });
+    }
+    html += '</div>';
     document.getElementById('compat-result').innerHTML = html;
 }
 
