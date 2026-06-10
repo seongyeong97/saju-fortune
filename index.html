@@ -527,9 +527,13 @@ function ohaengAnalysis(pillars) {
     // 월지 득령 판단
     const monthJiOh = JIJI_OHAENG[pillars.month.ji_idx];
     const deukryeong = (monthJiOh === ilganOh || monthJiOh === saengMe);
-    // 통근 (일지에 같은 오행이 있는지)
+    // 통근 (지지 전체에서 같은 오행/인성이 있는 수)
+    const jiList = [pillars.year.ji_idx, pillars.month.ji_idx, pillars.day.ji_idx, pillars.hour.ji_idx];
+    const tonggeunCount = jiList.filter(j => JIJI_OHAENG[j]===ilganOh || JIJI_OHAENG[j]===saengMe).length;
+    const tonggeun = tonggeunCount > 0;
+    // 일지 통근 여부
     const dayJiOh = JIJI_OHAENG[pillars.day.ji_idx];
-    const tonggeun = (dayJiOh === ilganOh || dayJiOh === saengMe);
+    const dayTonggeun = (dayJiOh === ilganOh || dayJiOh === saengMe);
     // 인비(印比) 수 계산
     const totalSupport = count[ilganOh] + count[saengMe];
     // 설기(식상+재성+관성) 수
@@ -538,9 +542,14 @@ function ohaengAnalysis(pillars) {
     let yongsin, heesin, gisin, strength, strengthReason = [];
     if (deukryeong) strengthReason.push("월지 득령(월령에서 힘을 받음)");
     else strengthReason.push("월지 실령(월령의 지원 없음)");
-    if (tonggeun) strengthReason.push("일지 통근(뿌리가 있음)");
+    if (dayTonggeun) strengthReason.push("일지 통근(일지에 뿌리 있음)");
+    else if (tonggeun) strengthReason.push(`지지 통근 ${tonggeunCount}개(일지 외 다른 지지에 뿌리)`);
+    else strengthReason.push("통근 없음(지지에 뿌리가 전혀 없음)");
     if (totalSupport >= 4) strengthReason.push(`인비(印比) ${totalSupport}개로 과반`);
     else strengthReason.push(`인비(印比) ${totalSupport}개로 소수`);
+    // 일간 자체 수(천간에서 같은 오행 수)
+    const ganSameOh = [pillars.year.gan_idx, pillars.month.gan_idx, pillars.hour.gan_idx].filter(g => CHEONGAN_OHAENG[g]===ilganOh).length;
+    if (ganSameOh > 0) strengthReason.push(`천간에 비겁 ${ganSameOh}개`);
 
     const isStrong = (deukryeong && totalSupport >= 3) || totalSupport >= 4;
     if (isStrong) {
@@ -563,7 +572,7 @@ function ohaengAnalysis(pillars) {
     // 최강 오행
     let domOh = 0, domCount = 0;
     for (let i = 0; i < 5; i++) { if (count[i] > domCount) { domCount = count[i]; domOh = i; } }
-    return { count, ilganOh, yongsin, heesin, gisin, strength, strengthReason, deukryeong, tonggeun, totalSupport, totalDrain, weakOh, weakCount, domOh };
+    return { count, ilganOh, yongsin, heesin, gisin, strength, strengthReason, deukryeong, tonggeun, tonggeunCount, dayTonggeun, totalSupport, totalDrain, weakOh, weakCount, domOh };
 }
 
 function getSipsung(myOh, myEy, targetOh, targetEy) {
@@ -1042,6 +1051,14 @@ function generateDetailedInterp(birthYear, pillars, sipsungs, ohaengData, daeun,
         ssLines.push("외부 압력(관성)이 강하면 쉽게 지칠 수 있습니다.");
         ssLines.push("→ 인성(보호)이나 비겁(동료)의 도움이 있으면 크게 발전합니다.");
     }
+    // 일간 오행이 사주에 1개뿐인 경우 강조
+    const ilganOhCount = ohaengData.count[ohaengData.ilganOh];
+    if (ilganOhCount <= 1) {
+        ssLines.push('');
+        ssLines.push(`⚠️ 【특이사항】 일간 오행(${ilganOhName})이 사주 전체에서 ${ilganOhCount}개뿐입니다.`);
+        ssLines.push("  → 일간과 같은 오행(비겁)이 없어 고독한 형국. 독립성이 강하나 주변 지원이 적습니다.");
+        ssLines.push("  → 용신·희신의 도움이 매우 중요하며, 대운에서 비겁이 올 때 크게 좋아집니다.");
+    }
     result.strengthAnalysis = {title:"3단계: 신강/신약 판단",icon:"⚖️",content:ssLines.join("\n")};
 
     // ===== 4단계: 용신/희신/기신 =====
@@ -1320,7 +1337,20 @@ function generateDetailedInterp(birthYear, pillars, sipsungs, ohaengData, daeun,
             timingLines.push('', '【주의 시기】');
             futureBad.slice(0,2).forEach(p => {
                 const yr = birthYear + p.age_start;
-                timingLines.push(`  • ${p.age_start}~${p.age_end}세 (${yr}~${yr+10}년): 기신(忌神) 대운으로 보수적 운영 권장`);
+                // 용신+기신 동시 대운 판단
+                const ganIsYong = p.ohaeng_gan === OHAENG[ohaengData.yongsin];
+                const jiIsYong = p.ohaeng_ji === OHAENG[ohaengData.yongsin];
+                const ganIsGi = p.ohaeng_gan === OHAENG[gisin];
+                const jiIsGi = p.ohaeng_ji === OHAENG[gisin];
+                if ((ganIsYong || jiIsYong) && (ganIsGi || jiIsGi)) {
+                    // 천간=용신+지지=기신 또는 그 반대
+                    const yongPos = ganIsYong ? '천간' : '지지';
+                    const giPos = ganIsGi ? '천간' : '지지';
+                    timingLines.push(`  • ${p.age_start}~${p.age_end}세 (${yr}~${yr+10}년): ${yongPos}에 용신(${OHAENG[ohaengData.yongsin]}), ${giPos}에 기신(${OHAENG[gisin]}) 혼재`);
+                    timingLines.push(`    → 지지(기신)가 실질적 영향력이 크므로 전반기 조심, 천간(용신) 힘이 나타나는 후반기에 기회 모색`);
+                } else {
+                    timingLines.push(`  • ${p.age_start}~${p.age_end}세 (${yr}~${yr+10}년): 기신(忌神) 대운으로 보수적 운영 권장`);
+                }
             });
             timingLines.push('  → 무리한 확장, 큰 투자, 이직은 피하고 내실을 다지세요.');
         }
@@ -1356,7 +1386,7 @@ function fullAnalysis(year, month, day, hour, minute, gender, calType, isLeap, u
     let ziwei = null;
     try { ziwei = calcZiwei(lunar.year, lunar.month, lunar.day, pillars.hour.ji_idx, pillars.year.gan_idx, pillars.year.ji_idx, gender); } catch(e) { ziwei = {error:e.message}; }
     // 상세 해석
-    const ohaengInfo = { strength: anal.strength, strengthReason: anal.strengthReason, yongsin: anal.yongsin, heesin: anal.heesin, gisin: anal.gisin, weakOh: anal.weakOh, weakCount: anal.weakCount, domOh: anal.domOh, deukryeong: anal.deukryeong, tonggeun: anal.tonggeun, totalSupport: anal.totalSupport, totalDrain: anal.totalDrain };
+    const ohaengInfo = { strength: anal.strength, strengthReason: anal.strengthReason, yongsin: anal.yongsin, heesin: anal.heesin, gisin: anal.gisin, weakOh: anal.weakOh, weakCount: anal.weakCount, domOh: anal.domOh, deukryeong: anal.deukryeong, tonggeun: anal.tonggeun, tonggeunCount: anal.tonggeunCount, dayTonggeun: anal.dayTonggeun, totalSupport: anal.totalSupport, totalDrain: anal.totalDrain, ilganOh: anal.ilganOh, count: anal.count };
     const detailedInterp = generateDetailedInterp(sY, pillars, sipsungs, ohaengInfo, daeun, seun, gender);
 
     return { birth: {year:sY, month:sM, day:sD, hour, minute, gender, cal_type: calType}, pillars, tti: sajuResult.tti, solarCorrection: sajuResult.solarCorrection, lunar, ohaeng: anal, sipsungs, daeun, seun, today, ziwei, detailedInterp };
