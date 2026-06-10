@@ -2171,9 +2171,9 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2, breakupYear, breakupMonth
     const MONTH_JIJI = [2,3,4,5,6,7,8,9,10,11,0,1]; // 인묘진사오미신유술해자축 (1~12월 지지)
     const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
-    // 분석 시작점: 현재 달부터 향후 6개월
+    // 분석 시작점: 현재 달부터 향후 12개월
     let bestMonths = []; // {yr, mon, score, reasons, type}
-    for (let offset = 0; offset < 6; offset++) {
+    for (let offset = 0; offset < 12; offset++) {
         let mo = currentMonth + offset;
         let yr = currentYear;
         if (mo > 12) { mo -= 12; yr += 1; }
@@ -2253,7 +2253,7 @@ function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2, breakupYear, breakupMonth
     }
     const neutralMonths = bestMonths.filter(m => m.score === 0);
     if (neutralMonths.length && !goodMonths.length) {
-        sec4.push('향후 6개월간 특별히 강한 시기 신호는 없습니다. 이 경우 인연의 끈 강도와 냉각 기간을 기준으로 판단하세요.');
+        sec4.push('향후 1년간 특별히 강한 시기 신호는 없습니다. 이 경우 인연의 끈 강도와 냉각 기간을 기준으로 판단하세요.');
         sec4.push('');
     }
 
