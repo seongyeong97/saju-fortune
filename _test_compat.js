@@ -23,13 +23,28 @@ try {
         if (sec.content.includes('NaN')) console.log('    ⚠️ "NaN" 포함!');
     });
     console.log('');
-    console.log('=== 1단계: 일간 궁합 ===');
-    console.log(result.sections.ilgan.content);
+
+    // 재회 테스트
+    const reunion = analyzeReunion(1997,2,17,3,'F',1995,8,20,10,'M');
+    console.log('=== 재회 테스트 ===');
+    const rkeys = Object.keys(reunion.sections);
+    console.log('섹션 수:', rkeys.length);
+    rkeys.forEach(k => {
+        const sec = reunion.sections[k];
+        const lines = sec.content.split('\\n').filter(l=>l.trim()).length;
+        console.log('  ' + sec.icon + ' ' + sec.title + ' (' + lines + '줄)');
+        if (sec.content.includes('undefined')) console.log('    ⚠️ "undefined" 포함!');
+        if (sec.content.includes('NaN')) console.log('    ⚠️ "NaN" 포함!');
+    });
     console.log('');
-    console.log('=== 7단계: 종합 결론 ===');
-    console.log(result.sections.conclusion.content);
+    console.log('인연 강도:', reunion.bondStrength);
+    console.log('재회 점수:', reunion.reunionScore);
     console.log('');
-    console.log('✅ 궁합 테스트 통과');
+    console.log('=== 1. 인연의 끈 (처음 8줄) ===');
+    console.log(reunion.sections.bond.content.split('\\n').slice(0,8).join('\\n'));
+    console.log('...');
+    console.log('');
+    console.log('✅ 모든 테스트 통과');
 } catch(e) { console.log('ERROR:', e.message); console.log(e.stack); }
 `;
 eval(testCode);

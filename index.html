@@ -239,6 +239,7 @@
             <div class="input-group"><label>성별</label><select id="gender2"><option value="F">여성</option><option value="M">남성</option></select></div>
         </div>
         <button class="btn-analyze" onclick="checkCompatibility()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);">💕 궁합 보기</button>
+        <button class="btn-analyze" onclick="checkReunion()" style="background:linear-gradient(135deg,#ff6f00,#ff8f00);margin-top:0.5rem;">🔄 재회 가능성 보기</button>
         <div id="compat-result" style="margin-top:1rem;"></div>
     </div>
 
@@ -1978,6 +1979,295 @@ function checkCompatibility() {
         html += '</div></div>';
     });
 
+    html += '</div>';
+    document.getElementById('compat-result').innerHTML = html;
+}
+
+// ============================================================
+// 재회 분석
+// ============================================================
+function analyzeReunion(y1,m1,d1,h1,g1,y2,m2,d2,h2,g2) {
+    const s1 = calcSajuPillars(y1,m1,d1,h1), s2 = calcSajuPillars(y2,m2,d2,h2);
+    const p1 = s1.pillars, p2 = s2.pillars;
+    const a1 = ohaengAnalysis(p1), a2 = ohaengAnalysis(p2);
+    const gan1 = p1.day.gan_idx, gan2 = p2.day.gan_idx;
+    const oh1 = CHEONGAN_OHAENG[gan1], oh2 = CHEONGAN_OHAENG[gan2];
+    const ey1 = CHEONGAN_EUMYANG[gan1], ey2 = CHEONGAN_EUMYANG[gan2];
+    const ilgan1 = CHEONGAN[gan1], ilgan2 = CHEONGAN[gan2];
+
+    const sections = {};
+
+    // ===== 1. 인연의 끈 분석 =====
+    let sec1 = [];
+    sec1.push('【이 인연의 끈은 얼마나 강한가】');
+    sec1.push('');
+    sec1.push('재회를 논하기 전에, 먼저 이 두 사람 사이에 "놓을 수 없는 끈"이 있는지를 봐야 합니다. 끈이 강하면 헤어져도 결국 다시 만나게 되고, 끈이 약하면 시간이 지나면서 자연히 잊힙니다.');
+    sec1.push('');
+
+    let bondStrength = 0;
+    const bondFactors = [];
+    if (checkCheonganHap(gan1,gan2)) { bondStrength += 3; bondFactors.push({factor:'일간 천간합', desc:'가장 강력한 인연의 끈입니다. 이 합이 있으면 헤어져도 상대가 꿈에 나오고, 다른 사람을 만나도 비교하게 되고, 몇 년이 지나도 문득문득 생각납니다. "잊으려 해도 잊히지 않는 사람" — 그것이 천간합의 힘입니다. 상대도 마찬가지로 느끼고 있을 확률이 매우 높습니다.'}); }
+    if (checkYukhap(p1.day.ji_idx,p2.day.ji_idx)) { bondStrength += 2; bondFactors.push({factor:'일지 육합', desc:'배우자궁의 합입니다. 이것은 "육체적·생활적 편안함"의 기억이 강하게 남아있다는 뜻입니다. 다른 사람을 만나도 "이 사람이랑 있으면 편한데... 그때 그 사람만큼은 아니네"라는 비교가 계속됩니다. 몸이 기억하는 편안함이 있어 다시 만나면 금세 원래대로 돌아갑니다.'}); }
+    if (checkSamhap(p1.day.ji_idx,p2.day.ji_idx)) { bondStrength += 1; bondFactors.push({factor:'일지 삼합', desc:'자연스러운 조화의 기억이 있습니다. 격렬한 그리움보다 "함께 있었을 때 좋았던 순간들"이 떠오릅니다.'}); }
+    if (checkYukhap(p1.year.ji_idx,p2.year.ji_idx)) { bondStrength += 1; bondFactors.push({factor:'년지 합', desc:'첫인상의 좋은 기억이 강합니다. "처음 만났을 때 느꼈던 설렘"을 잊지 못합니다. 주변 사람들도 "너네 왜 헤어졌어? 잘 어울렸는데"라고 말해줬을 것입니다.'}); }
+    if (a2.domOh===a1.yongsin || a1.domOh===a2.yongsin) { bondStrength += 2; bondFactors.push({factor:'용신 보완 관계', desc:'이 사람과 함께 있을 때 "운이 좋았다", "일이 잘 풀렸다"는 기억이 있습니다. 헤어진 후 일이 잘 안 풀리면 "그 사람이 복이었나?"라는 생각이 듭니다. 이것은 착각이 아닙니다 — 실제로 상대가 당신의 용신 기운을 줬기 때문입니다.'}); }
+    if (checkCheonganHap(p1.hour.gan_idx,p2.hour.gan_idx) || checkYukhap(p1.hour.ji_idx,p2.hour.ji_idx)) { bondStrength += 1; bondFactors.push({factor:'시주 합', desc:'미래에 대한 비전이 같았습니다. "같이 늙고 싶다"는 생각을 한 적이 있다면 이것 때문입니다.'}); }
+
+    // 끈을 약하게 하는 요소
+    const weakFactors = [];
+    if (checkYukchung(p1.day.ji_idx,p2.day.ji_idx)) { bondStrength -= 1; weakFactors.push({factor:'일지 충', desc:'함께 있을 때의 마찰 기억이 강합니다. 좋았던 기억과 힘들었던 기억이 동시에 올라와서 마음이 복잡합니다. "보고 싶은데 만나면 또 싸울 거 같아" — 이 양가감정이 재회를 망설이게 합니다.'}); }
+    if (checkHyung(p1.day.ji_idx,p2.day.ji_idx)) { bondStrength -= 1; weakFactors.push({factor:'일지 형', desc:'상대에게 받은 상처의 기억이 깊습니다. "그 사람이 나한테 했던 말"을 아직도 기억하고 있다면, 형의 흔적입니다. 재회를 하더라도 이 상처가 해결되지 않으면 같은 패턴이 반복됩니다.'}); }
+
+    if (bondFactors.length) {
+        bondFactors.forEach(b => { sec1.push(`✓ ${b.factor}`); sec1.push(`  ${b.desc}`); sec1.push(''); });
+    }
+    if (weakFactors.length) {
+        weakFactors.forEach(w => { sec1.push(`⚠ ${w.factor}`); sec1.push(`  ${w.desc}`); sec1.push(''); });
+    }
+    if (!bondFactors.length && !weakFactors.length) {
+        sec1.push('특별히 강한 인연의 끈이 발견되지 않습니다. 이것은 "운명적으로 다시 만나게 되는" 구조는 아니라는 뜻입니다. 재회가 불가능한 것은 아니지만, 운명이 밀어주기보다 본인의 의지와 행동에 달려 있습니다.');
+    }
+
+    sec1.push('【인연 강도 판단】');
+    if (bondStrength >= 5) sec1.push('매우 강한 인연입니다. 헤어져도 완전히 끊어지기 어려운 구조입니다. 시간이 지나도 상대를 잊지 못하며, 우연히 다시 만날 확률도 높습니다. 이 정도 인연은 "미련"이 아니라 "진짜 끈"입니다.');
+    else if (bondStrength >= 3) sec1.push('강한 인연입니다. 쉽게 잊히지 않는 관계이며, 적절한 시기에 연락하면 상대도 반응할 가능성이 높습니다.');
+    else if (bondStrength >= 1) sec1.push('보통 수준의 인연입니다. 시간이 지나면 그리움이 옅어질 수 있으나, 특정 계기(공통 지인, 장소)로 다시 이어질 수 있습니다.');
+    else sec1.push('인연의 끈이 약합니다. 재회를 원한다면 운명에 맡기기보다 직접 행동해야 합니다. 다만 "이 관계가 정말 나에게 좋은 것인지"를 먼저 생각해보세요.');
+    sections.bond = {title:"1. 인연의 끈", icon:"🔗", content: sec1.join("\n")};
+
+    // ===== 2. 이별 원인 구조 분석 =====
+    let sec2 = [];
+    sec2.push('【사주 구조로 본 이별의 근본 원인】');
+    sec2.push('');
+    sec2.push('재회를 논하기 전에, "왜 헤어졌는가"를 사주 구조로 분석해야 합니다. 원인이 해결되지 않으면 다시 만나도 같은 결말입니다.');
+    sec2.push('');
+
+    const causes = [];
+    if (SANGGEUK[oh1]===oh2) {
+        causes.push({type:'권력 불균형', detail:`1번(${OHAENG[oh1]})이 2번(${OHAENG[oh2]})을 극하는 구조입니다. 관계 안에서 1번이 무의식적으로 2번을 억압했을 가능성이 높습니다. 2번은 "숨이 막힌다", "나답게 살 수 없다"고 느꼈을 것입니다. 2번이 먼저 이별을 선언했다면, 이것이 원인일 확률이 매우 높습니다.`, fix:'재회하려면: 1번이 "내가 상대를 통제했구나"를 인정해야 합니다. 2번에게 "앞으로는 네 의견을 존중하겠다"가 아닌, "내가 왜 그랬는지 이해하게 됐다"라는 성찰을 보여줘야 합니다. 말이 아닌 변화된 태도가 필요합니다.'});
+    } else if (SANGGEUK[oh2]===oh1) {
+        causes.push({type:'상처 누적', detail:`2번(${OHAENG[oh2]})이 1번(${OHAENG[oh1]})을 극하는 구조입니다. 2번의 말과 행동이 1번에게 깊은 상처를 줬을 가능성이 높습니다. 1번은 속으로 삼키다가 한계에 도달해 떠났을 것입니다.`, fix:'재회하려면: 2번이 "내 말이 상대를 얼마나 아프게 했는지" 깨달아야 합니다. 1번은 "이번에도 같은 식으로 상처받지 않을까"라는 두려움이 있으므로, 2번의 구체적 변화(말투, 표현 방식)가 보여야 마음을 엽니다.'});
+    }
+    if (checkYukchung(p1.day.ji_idx,p2.day.ji_idx)) {
+        causes.push({type:'일상 마찰 폭발', detail:'일지 충으로 인해 함께 있을 때의 크고 작은 마찰이 쌓였을 것입니다. "사랑하는데 같이 있으면 피곤한" 상태가 지속되다가 어느 순간 "차라리 혼자가 편하다"는 결론에 도달했을 가능성.', fix:'재회하려면: "같은 공간에서의 룰"을 새로 정해야 합니다. 이전에 부딪혔던 구체적 문제(생활습관, 공간 사용 등)에 대한 합의가 먼저. "이번에는 다를 거야"가 아닌 "이것을 구체적으로 이렇게 바꾸겠다"가 필요합니다.'});
+    }
+    if (checkHyung(p1.day.ji_idx,p2.day.ji_idx)) {
+        causes.push({type:'깊은 상처 교환', detail:'형 관계로 서로에게 지울 수 없는 말을 했을 가능성이 높습니다. 마지막 싸움에서 "절대 하면 안 되는 말"을 했을 수 있습니다. 그 말이 관계를 끊은 직접적 원인일 수 있습니다.', fix:'재회하려면: "그때 내가 한 그 말, 정말 미안해. 그건 내 진심이 아니었어"라는 구체적 사과가 필요합니다. 뭉뚱그려 "미안해"가 아닌, 정확히 어떤 말이 상처였는지 짚어야 합니다.'});
+    }
+    if (oh1===oh2 && ey1===ey2) {
+        causes.push({type:'경쟁·비교 피로', detail:'같은 일간끼리의 관계에서 오는 경쟁 피로입니다. "이 사람은 내 편인데 왜 경쟁하는 느낌이 들지?"라는 혼란. 서로의 성취를 순수하게 축하하기 어려웠을 수 있습니다.', fix:'재회하려면: "우리는 경쟁자가 아닌 동지"라는 인식 전환이 필요합니다. 각자의 영역을 명확히 하고, 상대의 성공에 진심으로 기뻐할 수 있어야 합니다.'});
+    }
+    if (!bondFactors.length && !weakFactors.length) {
+        causes.push({type:'자연 소멸', detail:'강한 인연의 끈이 없는 상태에서, 환경 변화(이직, 이사, 새로운 인간관계)로 자연스럽게 멀어졌을 수 있습니다. 큰 싸움 없이 연락이 뜸해지고, 어느새 "우리 사이 뭐였지?"가 된 것.', fix:'재회하려면: 새로운 만남의 계기를 직접 만들어야 합니다. "옛날 우리"로 돌아가려 하지 말고, "새로운 사이"로 시작한다는 마음으로 접근하세요.'});
+    }
+    if (causes.length) {
+        causes.forEach(c => { sec2.push(`• ${c.type}`); sec2.push(`  ${c.detail}`); sec2.push(`  → ${c.fix}`); sec2.push(''); });
+    } else {
+        sec2.push('사주 구조상 필연적 이별 원인이 두드러지지 않습니다. 외부 환경(타이밍, 거리, 가족 문제)이나 개인의 성장 단계 차이가 원인이었을 가능성이 높습니다.');
+        sec2.push('');
+        sec2.push('→ 이 경우 재회 가능성이 상대적으로 높습니다. 구조적 문제가 아닌 상황적 문제였다면, 상황이 바뀌면 다시 이어질 수 있습니다.');
+    }
+    sections.cause = {title:"2. 이별 원인 구조", icon:"💔", content: sec2.join("\n")};
+
+    // ===== 3. 재회 가능성 =====
+    let sec3 = [];
+    sec3.push('【재회 확률 판단】');
+    sec3.push('');
+
+    let reunionScore = bondStrength * 15 + 30; // 기본 30 + 끈 강도
+    if (causes.length === 0) reunionScore += 15;
+    if (causes.length >= 2) reunionScore -= 10;
+
+    if (reunionScore >= 75) {
+        sec3.push('■ 재회 가능성: 높음');
+        sec3.push('');
+        sec3.push('이 두 사람이 다시 만날 확률은 높습니다. 인연의 끈이 강하고, 서로를 완전히 놓지 못하고 있을 가능성이 큽니다.');
+        sec3.push('상대의 마음 상태: 상대도 당신을 떠올리고 있을 확률이 높습니다. SNS를 확인하거나, 공통 지인에게 안부를 물었을 수 있습니다. "연락하고 싶은데 용기가 없는" 상태일 수 있습니다.');
+        sec3.push('');
+        sec3.push('다만 "다시 만날 수 있다"와 "다시 만나서 잘 될 수 있다"는 다릅니다. 재회 자체보다 "재회 후 같은 실수를 반복하지 않을 준비가 됐는가"가 더 중요합니다.');
+    } else if (reunionScore >= 50) {
+        sec3.push('■ 재회 가능성: 중간');
+        sec3.push('');
+        sec3.push('다시 만날 수 있는 구조이지만, 자연스럽게 찾아오기보다 한 쪽의 적극적 행동이 필요합니다.');
+        sec3.push('상대의 마음 상태: 가끔 생각나지만, 적극적으로 연락하고 싶은 상태는 아닐 수 있습니다. "연락 오면 받을 것 같긴 한데, 내가 먼저 하진 않을 것 같아" 정도.');
+        sec3.push('');
+        sec3.push('재회를 원한다면 우연을 가장한 접촉(공통 모임, SNS 반응)으로 물꼬를 트는 것이 좋습니다. 바로 "다시 만나자"는 부담스럽습니다.');
+    } else {
+        sec3.push('■ 재회 가능성: 낮음~중간');
+        sec3.push('');
+        sec3.push('솔직히 말하면, 이 관계가 자연스럽게 다시 이어질 가능성은 높지 않습니다. 인연의 끈이 약하거나, 이별의 상처가 깊기 때문입니다.');
+        sec3.push('');
+        sec3.push('하지만 "불가능"은 아닙니다. 다만 재회 자체에 매달리기보다, "내가 정말 이 사람과 다시 만나고 싶은 이유가 뭔지" — 외로움인지, 진짜 이 사람인지 — 를 먼저 구분하세요. 진짜 이 사람이 맞다면, 충분한 시간을 두고 천천히 접근하세요.');
+    }
+    sections.possibility = {title:"3. 재회 가능성", icon:"🔮", content: sec3.join("\n")};
+
+    // ===== 4. 재회 시기 (대운/세운 기반) =====
+    let sec4 = [];
+    sec4.push('【언제 다시 만나기 좋은가】');
+    sec4.push('');
+    sec4.push('재회에도 "때"가 있습니다. 아무 때나 연락하면 역효과가 날 수 있고, 적절한 시기에 하면 자연스럽게 흐릅니다.');
+    sec4.push('');
+
+    const currentYear = new Date().getFullYear();
+    const birthYear1 = y1;
+    // 올해와 내년 세운 체크
+    for (let yr = currentYear; yr <= currentYear + 2; yr++) {
+        const dGanji = getDayGanjiIndex(yr, 1, 1); // 간지 근사
+        const yrGan = (yr - 4) % 10;
+        const yrJi = (yr - 4) % 12;
+        const yrGanOh = CHEONGAN_OHAENG[yrGan];
+        const yrJiOh = JIJI_OHAENG[yrJi];
+        let good = [];
+        if (checkYukhap(yrJi, p2.day.ji_idx) || checkSamhap(yrJi, p2.day.ji_idx)) good.push('세운 지지가 상대 일지와 합 — 인연이 다시 엮이는 해');
+        if (yrGanOh === oh2 || yrJiOh === oh2) good.push('상대의 오행 기운이 오는 해 — 상대를 떠올리게 하는 에너지');
+        if (checkCheonganHap(yrGan, gan2)) good.push('세운 천간이 상대 일간과 합 — 운명적 재연결 가능');
+        if (yrGanOh === a1.yongsin || yrJiOh === a1.yongsin) good.push('본인 용신이 오는 해 — 자신감과 결단력이 올라감');
+        if (good.length) {
+            sec4.push(`📅 ${yr}년 (${CHEONGAN_HANJA[(yr-4)%10]}${JIJI_HANJA[(yr-4)%12]}년)`);
+            good.forEach(g => sec4.push(`  • ${g}`));
+            sec4.push('');
+        }
+    }
+    sec4.push('【연락 타이밍 조언】');
+    if (bondStrength >= 3) {
+        sec4.push('인연이 강한 편이므로, 헤어진 후 최소 3개월 이상의 냉각 기간 후 연락하세요.');
+        sec4.push('너무 빨리 연락하면 "또 이러네"로 받아들여지고, 너무 늦으면 상대가 새 관계를 시작할 수 있습니다.');
+        sec4.push('적절한 방법: 가벼운 안부("잘 지내?"), 공통 관심사 공유, 또는 특별한 날(생일) 축하.');
+    } else {
+        sec4.push('인연의 끈이 강하지 않으므로, 최소 6개월~1년의 냉각 기간을 권합니다.');
+        sec4.push('충분한 시간이 지나야 "옛날의 나쁜 기억"이 희미해지고, "좋았던 기억"이 떠오릅니다.');
+        sec4.push('적절한 방법: 우연한 만남을 만들거나, 공통 지인을 통한 간접 접촉. 직접 "다시 만나자"는 부담스럽습니다.');
+    }
+    sections.timing = {title:"4. 재회 시기", icon:"📅", content: sec4.join("\n")};
+
+    // ===== 5. 재회 후 전망 =====
+    let sec5 = [];
+    sec5.push('【다시 만나면 잘 될 수 있는가】');
+    sec5.push('');
+    sec5.push('가장 중요한 질문입니다. 재회 자체보다 "재회 후"가 핵심입니다.');
+    sec5.push('');
+
+    if (bondStrength >= 3 && causes.length <= 1) {
+        sec5.push('■ 전망: 긍정적');
+        sec5.push('');
+        sec5.push('인연의 끈이 강하고 구조적 문제가 적기 때문에, 재회 후 잘 될 확률이 높습니다. 이전에 부족했던 것(소통, 표현, 시간)만 보완하면 오히려 이전보다 더 단단한 관계가 됩니다.');
+        sec5.push('');
+        sec5.push('재회 후 주의점:');
+        sec5.push('• "옛날로 돌아가자"가 아닌 "새로운 관계를 시작하자"의 마인드');
+        sec5.push('• 이전에 안 했던 것(감정 표현, 대화)을 의식적으로 하기');
+        sec5.push('• 상대가 변한 부분을 인정하고 적응하기 — 시간이 지났으면 사람도 변했습니다');
+    } else if (causes.length >= 2 && bondStrength >= 2) {
+        sec5.push('■ 전망: 조건부 긍정');
+        sec5.push('');
+        sec5.push('끈은 강하지만 문제도 있는 구조입니다. 다시 만날 수는 있지만, "이전과 같은 방식으로" 만나면 100% 같은 결말입니다.');
+        sec5.push('');
+        sec5.push('재회의 전제조건:');
+        sec5.push('• 이전에 깨진 이유를 구체적으로 인식하고 있어야 합니다');
+        sec5.push('• 한 쪽이 아닌 양쪽 모두 변화가 있어야 합니다');
+        sec5.push('• "사랑하니까 괜찮겠지"가 아닌 "이 문제를 이렇게 해결하겠다"는 구체적 계획이 있어야 합니다');
+        sec5.push('• 가능하면 커플 상담을 함께 받는 것을 추천합니다');
+    } else if (causes.length >= 2 && bondStrength < 2) {
+        sec5.push('■ 전망: 신중');
+        sec5.push('');
+        sec5.push('솔직한 이야기를 하겠습니다. 인연의 끈이 약하고 구조적 문제도 있다면, 재회보다 새로운 인연을 찾는 것이 행복에 더 가까울 수 있습니다.');
+        sec5.push('');
+        sec5.push('"이 사람이 아니면 안 돼"라는 생각이 진짜 사랑에서 오는 것인지, 익숙함에 대한 집착인지, 혼자 있기 싫은 외로움인지 — 구분해야 합니다.');
+        sec5.push('');
+        sec5.push('만약 그래도 재회를 원한다면:');
+        sec5.push('• 최소 1년 이상 떨어져 있으면서 각자 성장하세요');
+        sec5.push('• "옛날의 그 사람"이 아닌 "지금의 이 사람"을 새로 알아가겠다는 각오');
+        sec5.push('• 다시 만나서도 안 되면, 이번에는 깨끗이 놓겠다는 마음의 준비');
+    } else {
+        sec5.push('■ 전망: 중립');
+        sec5.push('');
+        sec5.push('잘 될 수도 있고 안 될 수도 있습니다. 사주 구조보다 "두 사람이 헤어진 기간 동안 얼마나 성장했느냐"에 달려 있습니다.');
+        sec5.push('');
+        sec5.push('자기 진단 질문:');
+        sec5.push('• 이전에 내가 잘못한 것을 구체적으로 알고 있는가?');
+        sec5.push('• 같은 상황이 오면 이번에는 다르게 행동할 수 있는가?');
+        sec5.push('• 상대가 변하지 않아도 받아들일 수 있는가?');
+        sec5.push('• 재회가 안 되면 깨끗이 놓을 수 있는가?');
+        sec5.push('');
+        sec5.push('이 4가지 질문에 모두 "예"라면, 재회를 시도해볼 가치가 있습니다.');
+    }
+    sections.outlook = {title:"5. 재회 후 전망", icon:"🌅", content: sec5.join("\n")};
+
+    // ===== 6. 구체적 행동 전략 =====
+    let sec6 = [];
+    sec6.push('【재회를 위한 구체적 행동 가이드】');
+    sec6.push('');
+
+    // 연락 전략
+    sec6.push('① 냉각 기간');
+    if (checkYukchung(p1.day.ji_idx,p2.day.ji_idx) || checkHyung(p1.day.ji_idx,p2.day.ji_idx)) {
+        sec6.push('이 관계는 마지막에 상처가 깊었을 확률이 높습니다. 최소 6개월은 아무 연락도 하지 마세요. "보고 싶어서" 보내는 메시지는 상대에게 "또 시작이네"로 느껴집니다. 충분히 기다려야 상대의 경계가 풀립니다.');
+    } else if (bondStrength >= 3) {
+        sec6.push('인연이 강하기 때문에 3개월 정도의 냉각기면 충분합니다. 하지만 이 기간에 절대 연락하지 마세요. "잘 지내?"도 안 됩니다. 완전한 부재가 상대에게 "이 사람이 없는 삶"을 체감하게 합니다.');
+    } else {
+        sec6.push('6개월~1년의 냉각기를 권합니다. 이 기간 동안 자기 자신에게 집중하세요. 운동, 새로운 취미, 자기 계발 — 다시 만났을 때 "이 사람 뭔가 달라졌네"를 느끼게 할 변화가 필요합니다.');
+    }
+    sec6.push('');
+
+    sec6.push('② 첫 연락');
+    if (checkCheonganHap(gan1,gan2) || checkYukhap(p1.day.ji_idx,p2.day.ji_idx)) {
+        sec6.push('천간합/육합 인연이므로, 가벼운 연락에도 상대가 반응할 확률이 높습니다. "생일 축하해", "이거 보고 네 생각났어" 정도의 가벼운 메시지로 시작하세요. 무거운 이야기(우리 관계, 재회)는 절대 첫 연락에서 꺼내지 마세요.');
+    } else {
+        sec6.push('상대가 반응할지 확신이 없으므로, 부담 없는 핑계를 만드세요. "네가 추천했던 그 영화 봤는데 진짜 좋더라", "네 물건 정리하다 나왔는데 전해줄까?" — 상대가 부담 없이 답할 수 있는 내용으로.');
+    }
+    sec6.push('');
+
+    sec6.push('③ 만남 이후');
+    if (SANGGEUK[oh1]===oh2 || SANGGEUK[oh2]===oh1) {
+        sec6.push('상극 관계이므로, 다시 만나면 "이전의 패턴"이 무의식적으로 나옵니다. 의식적으로 "지적하지 않기", "통제하지 않기", "상대의 속도에 맞추기"를 실천하세요. 한 번이라도 이전 패턴이 나오면 상대는 "안 변했네" 하고 닫아버립니다.');
+    } else {
+        sec6.push('다시 만났을 때, "옛날 이야기"에 너무 빠지지 마세요. "그때 왜 그랬어", "그때 네가 이랬잖아" — 이런 대화는 과거의 감정을 다시 끌어올립니다. "지금 우리"에 집중하세요. 새로운 추억을 만드는 것이 과거를 복기하는 것보다 훨씬 효과적입니다.');
+    }
+    sec6.push('');
+
+    sec6.push('④ 하지 말아야 할 것');
+    sec6.push('• 술 먹고 연락하기 — 후회만 남습니다');
+    sec6.push('• "나 아직 너 좋아해" 고백 — 부담만 줍니다. 감정은 행동으로 보여주세요');
+    sec6.push('• 상대 새 연인 비방하기 — 비열해 보입니다');
+    sec6.push('• 공통 지인 통해 압박하기 — 역효과만 납니다');
+    sec6.push('• "달라졌어"라고 말하기 — 말이 아닌 보여줘야 합니다');
+    sections.action = {title:"6. 행동 전략", icon:"🎯", content: sec6.join("\n")};
+
+    return { sections, bondStrength, reunionScore: Math.max(0,Math.min(100,reunionScore)) };
+}
+
+function checkReunion() {
+    const g = id => document.getElementById(id).value;
+    const y1=+g('year'),m1=+g('month'),d1=+g('day'),h1=+g('hour'),g1=g('gender'),cal1=g('cal-type');
+    const y2=+g('year2'),m2=+g('month2'),d2=+g('day2'),h2=+g('hour2'),g2=g('gender2'),cal2=g('cal-type2');
+    if (!y1||!m1||!d1||!y2||!m2||!d2) { alert('두 사람 모두 입력해주세요.'); return; }
+    let sy1=y1,sm1=m1,sd1=d1,sy2=y2,sm2=m2,sd2=d2;
+    if (cal1==='lunar') { const c=lunarToSolar(y1,m1,d1); sy1=c.year;sm1=c.month;sd1=c.day; }
+    if (cal2==='lunar') { const c=lunarToSolar(y2,m2,d2); sy2=c.year;sm2=c.month;sd2=c.day; }
+    const data = analyzeReunion(sy1,sm1,sd1,h1,g1,sy2,sm2,sd2,h2,g2);
+
+    let html = `<div class="result-section" style="margin-top:1rem;"><h2>🔄 재회 분석 결과</h2>`;
+    const order = ['bond','cause','possibility','timing','outlook','action'];
+    order.forEach(key => {
+        if (!data.sections[key]) return;
+        const sec = data.sections[key];
+        html += `<div style="margin-top:1.2rem;background:var(--bg-input);border-radius:12px;padding:1.2rem;border-left:4px solid #ff8f00;">`;
+        html += `<h3 style="margin:0 0 0.8rem;font-size:1.05rem;color:#ff8f00;">${sec.icon} ${sec.title}</h3>`;
+        html += `<div style="font-size:0.9rem;color:var(--text);line-height:1.8;">`;
+        sec.content.split('\n').forEach(line => {
+            if (!line.trim()) { html += '<div style="height:0.5rem;"></div>'; return; }
+            let style = '';
+            if (line.startsWith('【')) style='font-weight:bold;color:var(--gold);margin-top:0.5rem;';
+            else if (line.startsWith('■')) style='font-weight:bold;color:#ff8f00;font-size:1rem;';
+            else if (line.startsWith('→')) style='color:var(--accent);font-style:italic;';
+            else if (line.startsWith('⚠')) style='color:#e67e22;';
+            else if (line.startsWith('✓')) style='color:#2ecc71;';
+            else if (line.startsWith('📅')) style='font-weight:bold;color:#29b6f6;';
+            else if (line.startsWith('•')) style='padding-left:0.5rem;';
+            else if (line.startsWith('①')||line.startsWith('②')||line.startsWith('③')||line.startsWith('④')) style='font-weight:bold;color:var(--text);margin-top:0.3rem;';
+            html += `<p style="margin:0.25rem 0;${style}">${line}</p>`;
+        });
+        html += '</div></div>';
+    });
     html += '</div>';
     document.getElementById('compat-result').innerHTML = html;
 }
